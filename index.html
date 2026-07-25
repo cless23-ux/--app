@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>자재 관리마스터</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="자재 관리마스터">
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --danger: #dc2626;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-light: #64748b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg); padding-bottom: 24px; }
+
+    .hero {
+      position: relative;
+      height: 180px;
+      background: linear-gradient(135deg, #0f1e3c 0%, #1d4ed8 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+      color: #fff;
+    }
+    .hero .hero-logo {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      display: flex;
+      align-items: center;
+    }
+    .hero .logo-text {
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 1.5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .hero .hero-sub {
+      font-size: 12px;
+      opacity: 0.85;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .hero .hero-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .hero .hero-desc {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .hero .hist-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .view { display: none; padding: 16px; }
+    .view.active { display: block; }
+
+    .search-box { display: flex; gap: 8px; margin-bottom: 8px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+    }
+    .search-box input { flex: 1; }
+    .icon-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px; font-weight: 600; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: box-shadow .15s;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .card-thumb {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      border: 1px solid var(--border);
+    }
+    .card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .card-info { flex: 1; min-width: 0; }
+    .card .name { font-weight: 700; font-size: 15px; }
+    .card .meta { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+    .stock-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #dcfce7; color: #166534;
+    }
+    .stock-badge.low { background: #fee2e2; color: #991b1b; }
+
+    .selected-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .selected-card .name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+    .selected-card .meta { font-size: 13px; color: var(--text-light); }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-primary:disabled { background: #94a3b8; }
+    .btn-secondary {
+      width: 100%;
+      background: #fff;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .filter-row select { font-size: 13px; padding: 8px; }
+
+    .hist-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .hist-item .top-row { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px; }
+    .hist-item .sub { color: var(--text-light); }
+
+    .empty { text-align: center; color: var(--text-light); padding: 40px 0; font-size: 14px; }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 100;
+      display: none;
+    }
+    .toast.error { background: var(--danger); }
+    .spinner { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="hero">
+    <div class="hero-logo">
+      <span class="logo-text">LUXCO</span>
+    </div>
+    <button class="hist-btn" onclick="showHistory()">이전기록</button>
+    <div class="hero-sub">Upright Green Energy Partner</div>
+    <div class="hero-title">📦 자재 관리마스터</div>
+    <div class="hero-desc">세상을 움직이는 기술과 신뢰로 자재를 관리합니다</div>
+  </div>
+
+  <!-- ================= 검색 화면 ================= -->
+  <div id="viewSearch" class="view active">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" onkeyup="if(event.key==='Enter')doSearch()">
+      <button class="icon-btn" onclick="toggleQr()">▦</button>
+    </div>
+    <button class="btn-secondary" onclick="doSearch()">검색</button>
+    <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- ================= 불출 입력 화면 ================= -->
+  <div id="viewForm" class="view">
+    <div class="selected-card" id="selectedInfo"></div>
+    <button class="btn-secondary" id="photoUploadBtn" onclick="triggerPhotoUpload()">📷 사진 등록/변경</button>
+    <input type="file" id="photoFileInput" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
+
+    <div class="field" style="margin-top:16px;">
+      <label>프로젝트명</label>
+      <select id="fProject"></select>
+    </div>
+    <div class="field">
+      <label>호선명</label>
+      <input id="fShip" type="text" list="shipList" placeholder="호선명 입력 또는 목록에서 선택" autocomplete="off">
+      <datalist id="shipList"></datalist>
+    </div>
+    <div class="field">
+      <label>사용수량</label>
+      <input id="fQty" type="number" min="1" placeholder="수량 입력">
+    </div>
+    <div class="field">
+      <label>사용자(이름)</label>
+      <select id="fUser"></select>
+    </div>
+    <div class="field">
+      <label>비고 (선택)</label>
+      <textarea id="fNote" rows="2" placeholder="특이사항 입력"></textarea>
+    </div>
+
+    <button class="btn-primary" id="submitBtn" onclick="submitForm()">불출 등록</button>
+    <button class="btn-secondary" onclick="backToSearch()">검색으로 돌아가기</button>
+  </div>
+
+  <!-- ================= 이전기록 화면 ================= -->
+  <div id="viewHistory" class="view">
+    <div class="filter-row">
+      <select id="histProject" onchange="loadHistory()"><option value="">전체 프로젝트</option></select>
+      <input id="histShip" type="text" list="histShipList" placeholder="호선명 입력 또는 선택" autocomplete="off"
+             onchange="loadHistory()" onkeyup="if(event.key==='Enter')loadHistory()">
+      <datalist id="histShipList"></datalist>
+    </div>
+    <div class="search-box">
+      <input id="histKeyword" type="text" placeholder="자재명/코드 검색" onkeyup="if(event.key==='Enter')loadHistory()">
+      <button class="icon-btn" onclick="loadHistory()">🔍</button>
+    </div>
+    <div id="historyList"></div>
+    <button class="btn-secondary" onclick="backToSearch()">검색으로 돌아가기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ⚠️ Apps Script 배포 후 나온 웹앱 URL(.../exec)로 반드시 교체하세요.
+const APPS_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEBAPP_URL_HERE';
+
+let selectedMaterial = null;
+let masterLists = null;
+let currentView = 'viewSearch';
+
+// ---------- 서비스워커 등록 (PWA 설치 가능하게 하는 필수 조건) ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./service-worker.js').catch(function (err) {
+      console.warn('서비스워커 등록 실패:', err);
+    });
+  });
+}
+
+// ---------- Apps Script API 호출 레이어 ----------
+// GET: 조회용(검색/목록/이력) - 쿼리스트링 방식, 프리플라이트(CORS preflight) 없이 바로 요청
+function apiGet(action, params) {
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  Object.keys(params || {}).forEach(function (k) {
+    const v = params[k];
+    if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+  });
+  return fetch(url.toString())
+    .then(function (r) { return r.json(); });
+}
+
+// POST: 쓰기용(불출등록/사진업로드) - text/plain으로 보내 CORS 프리플라이트 회피
+function apiPost(action, payload) {
+  return fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: action, payload: payload })
+  }).then(function (r) { return r.json(); });
+}
+
+window.onload = function () {
+  history.replaceState({ view: 'viewSearch' }, null, location.href);
+
+  apiGet('masterLists', {}).then(function (lists) {
+    masterLists = lists;
+    fillSelect('fProject', lists.projects, '프로젝트 선택');
+    fillDatalist('shipList', lists.ships);
+    fillSelect('fUser', lists.users, '사용자 선택');
+    fillSelect('histProject', lists.projects, '전체 프로젝트', true);
+    fillDatalist('histShipList', lists.ships);
+  }).catch(showError);
+};
+
+window.onpopstate = function (event) {
+  if (event.state && event.state.view) {
+    switchView(event.state.view, false);
+  } else {
+    switchView('viewSearch', false);
+    history.pushState({ view: 'viewSearch' }, null, location.href);
+  }
+};
+
+function fillSelect(id, arr, placeholder, keepFirst) {
+  const el = document.getElementById(id);
+  if (!keepFirst) el.innerHTML = '<option value="">' + placeholder + '</option>';
+  arr.forEach(function (v) {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    el.appendChild(opt);
+  });
+}
+
+function fillDatalist(id, arr) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  arr.forEach(function (v) {
+    const opt = document.createElement('option');
+    opt.value = v;
+    el.appendChild(opt);
+  });
+}
+
+function switchView(id, pushHistoryFlag = true) {
+  currentView = id;
+  document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  if (pushHistoryFlag) {
+    history.pushState({ view: id }, null, location.href);
+  }
+}
+
+function backToSearch() {
+  if (currentView !== 'viewSearch') {
+    history.back();
+  }
+}
+
+function showHistory() {
+  switchView('viewHistory');
+  loadHistory();
+}
+
+// ---------- 검색 ----------
+function doSearch() {
+  const kw = document.getElementById('searchInput').value.trim();
+  const resultsEl = document.getElementById('searchResults');
+  if (!kw) { resultsEl.innerHTML = ''; return; }
+  resultsEl.innerHTML = '<div class="spinner">검색 중...</div>';
+
+  apiGet('search', { keyword: kw })
+    .then(function (items) {
+      if (!items.length) {
+        resultsEl.innerHTML = '<div class="empty">검색 결과가 없습니다.</div>';
+        return;
+      }
+      resultsEl.innerHTML = '';
+      items.forEach(function (item) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        const lowStock = Number(item.stock) <= 0;
+        const thumbHtml = item.photo
+          ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">'
+          : '📦';
+        div.innerHTML =
+          '<div class="card-thumb">' + thumbHtml + '</div>' +
+          '<div class="card-info">' +
+            '<div class="name">' + escapeHtml(item.name) + '</div>' +
+            '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
+            '<div class="meta" style="margin-top:6px;">재고: <span class="stock-badge ' + (lowStock ? 'low' : '') + '">' +
+              item.stock + ' ' + escapeHtml(item.unit || '') + '</span></div>' +
+          '</div>';
+        div.onclick = function () { selectMaterial(item); };
+        resultsEl.appendChild(div);
+      });
+    })
+    .catch(showError);
+}
+
+function selectMaterial(item) {
+  selectedMaterial = item;
+  const thumbHtml = item.photo
+    ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">'
+    : '📦';
+  document.getElementById('selectedInfo').innerHTML =
+    '<div style="display:flex; gap:12px; align-items:center;">' +
+      '<div class="card-thumb" id="selectedThumb">' + thumbHtml + '</div>' +
+      '<div class="card-info">' +
+        '<div class="name">' + escapeHtml(item.name) + '</div>' +
+        '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
+        '<div class="meta">현재재고: ' + item.stock + ' ' + escapeHtml(item.unit || '') + '</div>' +
+      '</div>' +
+    '</div>';
+  document.getElementById('fQty').value = '';
+  document.getElementById('fQty').max = item.stock;
+  switchView('viewForm');
+}
+
+// ---------- QR 스캔 ----------
+function toggleQr() {
+  document.getElementById('qrFileInput').click();
+}
+
+function handleQrFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  showToast('QR코드 분석 중...');
+
+  const timeoutId = setTimeout(function () {
+    showError({ message: '분석이 오래 걸리고 있습니다. QR을 더 크고 선명하게 다시 촬영해보세요.' });
+  }, 12000);
+
+  const reader = new FileReader();
+  reader.onerror = function () {
+    clearTimeout(timeoutId);
+    showError({ message: '이미지를 불러오지 못했습니다.' });
+  };
+  reader.onload = function (evt) {
+    const img = new Image();
+    img.onerror = function () {
+      clearTimeout(timeoutId);
+      showError({ message: '이미지를 불러오지 못했습니다.' });
+    };
+    img.onload = function () {
+      try {
+        const candidateSizes = [800, 1400, 2200];
+        let code = null;
+
+        for (let i = 0; i < candidateSizes.length; i++) {
+          const MAX_SIZE = candidateSizes[i];
+          let w = img.width;
+          let h = img.height;
+          if (w > MAX_SIZE || h > MAX_SIZE) {
+            const scale = MAX_SIZE / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const imageData = ctx.getImageData(0, 0, w, h);
+          code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth'
+          });
+
+          if (code && code.data) break;
+          if (Math.max(img.width, img.height) <= MAX_SIZE) break;
+        }
+
+        clearTimeout(timeoutId);
+
+        if (code && code.data) {
+          document.getElementById('searchInput').value = code.data;
+          doSearch();
+        } else {
+          showError({ message: 'QR코드를 인식하지 못했습니다. 화면 전체에 QR코드가 꽉 차게, 흔들리지 않도록 다시 촬영해주세요.' });
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        showError({ message: '분석 중 오류가 발생했습니다: ' + err.message });
+      }
+    };
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ---------- 자재 사진 업로드 ----------
+function triggerPhotoUpload() {
+  if (!selectedMaterial) {
+    showError({ message: '자재를 먼저 선택해주세요.' });
+    return;
+  }
+  document.getElementById('photoFileInput').click();
+}
+
+function handlePhotoFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file || !selectedMaterial) return;
+
+  const btn = document.getElementById('photoUploadBtn');
+  btn.disabled = true;
+  showToast('사진 업로드 중...');
+
+  const reader = new FileReader();
+  reader.onerror = function () {
+    btn.disabled = false;
+    showError({ message: '이미지를 불러오지 못했습니다.' });
+  };
+  reader.onload = function (evt) {
+    // evt.target.result 형태: "data:image/jpeg;base64,AAAA..."
+    // 서버(Utilities.base64Decode)는 'data:...;base64,' 접두어가 없는 순수 base64 문자열을 기대하므로 분리해서 전달
+    const fullDataUrl = evt.target.result;
+    const commaIdx = fullDataUrl.indexOf(',');
+    const base64Only = commaIdx !== -1 ? fullDataUrl.substring(commaIdx + 1) : fullDataUrl;
+    const mimeType = file.type || 'image/jpeg';
+
+    apiPost('uploadPhoto', {
+      code: selectedMaterial.code,
+      base64Data: base64Only,
+      mimeType: mimeType,
+      fileName: selectedMaterial.code + '.jpg'
+    })
+      .then(function (res) {
+        btn.disabled = false;
+        if (res && res.success) {
+          selectedMaterial.photo = res.url;
+          const selectedThumb = document.getElementById('selectedThumb');
+          if (selectedThumb) {
+            selectedThumb.innerHTML = '<img src="' + res.url + '" alt="' + escapeHtml(selectedMaterial.name) +
+              '" onerror="this.parentElement.innerHTML=\'📦\'">';
+          }
+          showToast(res.message || '사진이 등록되었습니다.');
+        } else {
+          showError(res || { message: '사진 등록에 실패했습니다.' });
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        showError(err);
+      });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ---------- 불출 등록 ----------
+function submitForm() {
+  const project = document.getElementById('fProject').value;
+  const ship = document.getElementById('fShip').value.trim();
+  const qty = Number(document.getElementById('fQty').value);
+  const user = document.getElementById('fUser').value;
+  const note = document.getElementById('fNote').value.trim();
+
+  if (!selectedMaterial) return showError({ message: '자재를 먼저 선택해주세요.' });
+  if (!project) return showError({ message: '프로젝트명을 선택해주세요.' });
+  if (!ship) return showError({ message: '호선명을 입력해주세요.' });
+  if (!qty || qty <= 0) return showError({ message: '사용수량을 입력해주세요.' });
+  if (!user) return showError({ message: '사용자를 선택해주세요.' });
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  showToast('불출 등록 중...');
+
+  apiPost('submitDispatch', {
+    code: selectedMaterial.code,
+    name: selectedMaterial.name,
+    spec: selectedMaterial.spec,
+    unit: selectedMaterial.unit,
+    qty: qty,
+    project: project,
+    ship: ship,
+    user: user,
+    note: note
+  })
+    .then(function (res) {
+      submitBtn.disabled = false;
+      if (res && res.success) {
+        showToast(res.message || '불출이 등록되었습니다.');
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+        selectedMaterial = null;
+        backToSearch();
+      } else {
+        showError(res || { message: '불출 등록에 실패했습니다.' });
+      }
+    })
+    .catch(function (err) {
+      submitBtn.disabled = false;
+      showError(err);
+    });
+}
+
+// ---------- 이전기록 ----------
+function loadHistory() {
+  const p = document.getElementById('histProject').value;
+  const s = document.getElementById('histShip').value.trim();
+  const k = document.getElementById('histKeyword').value.trim();
+  const el = document.getElementById('historyList');
+  el.innerHTML = '<div class="spinner">기록 불러오는 중...</div>';
+
+  apiGet('history', { project: p, ship: s, keyword: k })
+    .then(function (list) {
+      if (!list.length) {
+        el.innerHTML = '<div class="empty">이전 불출 기록이 없습니다.</div>';
+        return;
+      }
+      el.innerHTML = '';
+      list.forEach(function (h) {
+        const div = document.createElement('div');
+        div.className = 'hist-item';
+        div.innerHTML =
+          '<div class="top-row"><span>' + escapeHtml(h.name) + ' (' + escapeHtml(h.code) + ')</span><span>' + h.qty + ' ' + escapeHtml(h.unit || '') + '</span></div>' +
+          '<div class="sub">프로젝트: ' + escapeHtml(h.project) + ' · 호선: ' + escapeHtml(h.ship) + '</div>' +
+          '<div class="sub">불출자: ' + escapeHtml(h.user) + ' · 일시: ' + escapeHtml(h.datetime) + '</div>' +
+          (h.note ? '<div class="sub" style="margin-top:4px; color:#1e293b;">비고: ' + escapeHtml(h.note) + '</div>' : '');
+        el.appendChild(div);
+      });
+    })
+    .catch(showError);
+}
+
+// ---------- 유틸리티 ----------
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.className = 'toast';
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(function () { t.style.display = 'none'; }, 3000);
+}
+
+function showError(err) {
+  const t = document.getElementById('toast');
+  t.className = 'toast error';
+  t.textContent = (err && err.message) || '오류가 발생했습니다.';
+  t.style.display = 'block';
+  setTimeout(function () { t.style.display = 'none'; }, 4000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>
