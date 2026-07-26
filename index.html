@@ -598,6 +598,7 @@ function startLiveScan() {
   overlay.classList.add('active');
   statusEl.textContent = '카메라를 켜는 중...';
   qrScanning = true;
+  qrCropRect_ = null; // 새 스캔 시작 시 크롭 영역 재계산되도록 초기화
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     statusEl.textContent = '이 브라우저에서는 실시간 카메라를 지원하지 않습니다. 아래 버튼으로 사진 촬영해서 인식해주세요.';
@@ -620,35 +621,61 @@ function startLiveScan() {
   });
 }
 
+// 화면에 표시되는 안내 사각형(.qr-frame) 위치를, 실제 영상의 원본 좌표로 변환.
+// object-fit: cover 방식이라 화면에 보이는 크기와 실제 영상 해상도가 다르므로 좌표 변환이 필요함.
+let qrCropRect_ = null;
+function computeQrCropRect_(video) {
+  const wrap = document.querySelector('.qr-video-wrap');
+  const frame = document.querySelector('.qr-frame');
+  const wrapRect = wrap.getBoundingClientRect();
+  const frameRect = frame.getBoundingClientRect();
+
+  const vw = video.videoWidth, vh = video.videoHeight;
+  // object-fit: cover 배율 (컨테이너를 꽉 채우기 위해 더 큰 쪽 배율 사용)
+  const scale = Math.max(wrapRect.width / vw, wrapRect.height / vh);
+  const displayedW = vw * scale;
+  const displayedH = vh * scale;
+  const offsetX = (displayedW - wrapRect.width) / 2;
+  const offsetY = (displayedH - wrapRect.height) / 2;
+
+  // 안내 사각형의 컨테이너 기준 상대 위치
+  const frameLeftInWrap = frameRect.left - wrapRect.left;
+  const frameTopInWrap = frameRect.top - wrapRect.top;
+
+  return {
+    x: Math.round((offsetX + frameLeftInWrap) / scale),
+    y: Math.round((offsetY + frameTopInWrap) / scale),
+    size: Math.round(frameRect.width / scale)
+  };
+}
+
 // 매 프레임 캡처 → jsQR 인식 시도 (일정 주기로는 이진화 버전도 시도)
+// 화면 안내 사각형 안쪽만 잘라서 스캔하므로, 주변에 보이는 다른 QR은 무시됨.
 function scanLoop_(video, statusEl) {
   if (!qrScanning) return;
 
-  const canvas = document.createElement('canvas');
   const vw = video.videoWidth, vh = video.videoHeight;
 
   if (vw && vh) {
-    // 처리 속도를 위해 너무 큰 해상도는 축소
-    const MAX_SIZE = 900;
-    let w = vw, h = vh;
-    if (Math.max(w, h) > MAX_SIZE) {
-      const scale = MAX_SIZE / Math.max(w, h);
-      w = Math.round(w * scale);
-      h = Math.round(h * scale);
-    }
-    canvas.width = w;
-    canvas.height = h;
+    if (!qrCropRect_) qrCropRect_ = computeQrCropRect_(video);
+    const crop = qrCropRect_;
+
+    // 잘라낸 영역을 넉넉한 해상도로 확대해서 인식률 확보
+    const OUTPUT_SIZE = 500;
+    const canvas = document.createElement('canvas');
+    canvas.width = OUTPUT_SIZE;
+    canvas.height = OUTPUT_SIZE;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, w, h);
+    ctx.drawImage(video, crop.x, crop.y, crop.size, crop.size, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
 
     try {
-      const imageData = ctx.getImageData(0, 0, w, h);
-      let code = jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      const imageData = ctx.getImageData(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+      let code = jsQR(imageData.data, OUTPUT_SIZE, OUTPUT_SIZE, { inversionAttempts: 'attemptBoth' });
 
       // 매 프레임 이진화까지 하면 무거우니, 약 6프레임에 한 번만 보조로 시도
       if (!code && (scanLoop_.frameCount = (scanLoop_.frameCount || 0) + 1) % 6 === 0) {
         const binaryData = binarizeImageData_(imageData);
-        code = jsQR(binaryData, w, h, { inversionAttempts: 'attemptBoth' });
+        code = jsQR(binaryData, OUTPUT_SIZE, OUTPUT_SIZE, { inversionAttempts: 'attemptBoth' });
       }
 
       if (code && code.data) {
