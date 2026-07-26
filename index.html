@@ -112,6 +112,9 @@
       padding: 0 16px;
       font-size: 18px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px; font-weight: 600; }
@@ -225,6 +228,81 @@
     }
     .toast.error { background: var(--danger); }
     .spinner { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
+
+    /* ---- 실시간 QR 스캔 오버레이 ---- */
+    .qr-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 200;
+      flex-direction: column;
+    }
+    .qr-overlay.active { display: flex; }
+    .qr-overlay-header {
+      color: #fff;
+      padding: 16px 16px calc(12px + env(safe-area-inset-top, 0px));
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .qr-close-btn {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .qr-video-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+    #qrVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .qr-frame {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 68%;
+      max-width: 320px;
+      aspect-ratio: 1 / 1;
+      pointer-events: none;
+    }
+    .qr-frame {
+      border-radius: 16px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
+    }
+    .qr-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 16px;
+    }
+    .qr-overlay-footer {
+      padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .qr-scan-status {
+      color: #fff;
+      font-size: 13px;
+      opacity: 0.85;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -243,11 +321,35 @@
   <div id="viewSearch" class="view active">
     <div class="search-box">
       <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" onkeyup="if(event.key==='Enter')doSearch()">
-      <button class="icon-btn" onclick="toggleQr()">▦</button>
+      <button class="icon-btn" id="qrScanBtn" onclick="toggleQr()" aria-label="QR 스캔" title="QR 스캔">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/>
+          <path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/>
+          <path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/>
+          <path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/>
+          <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
     </div>
     <button class="btn-secondary" onclick="doSearch()">검색</button>
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
     <div id="searchResults"></div>
+  </div>
+
+  <!-- ================= 실시간 QR 스캔 오버레이 ================= -->
+  <div id="qrScanOverlay" class="qr-overlay">
+    <div class="qr-overlay-header">
+      <span>QR코드를 화면에 비춰주세요</span>
+      <button class="qr-close-btn" onclick="stopLiveScan()">✕</button>
+    </div>
+    <div class="qr-video-wrap">
+      <video id="qrVideo" playsinline autoplay muted></video>
+      <div class="qr-frame"></div>
+    </div>
+    <div class="qr-overlay-footer">
+      <div id="qrScanStatus" class="qr-scan-status">카메라를 켜는 중...</div>
+      <button class="btn-secondary" style="max-width:280px;" onclick="switchToPhotoMode()">대신 사진으로 촬영해서 인식</button>
+    </div>
   </div>
 
   <!-- ================= 불출 입력 화면 ================= -->
@@ -303,7 +405,7 @@
 
 <script>
 // ⚠️ Apps Script 배포 후 나온 웹앱 URL(.../exec)로 반드시 교체하세요.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzG2qdcI0Zu9aCeBB4d5ctVZVkHsQHz7FmrmMdUDZmCDhqkZzkTXU_Uvx60w3-raPFi/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMVfqg1uRCqhn9Jz760IoNDg8uQshvFLqLEaxdB-UsRwhi_ux0iZnlaB1zwpnErDea/exec';
 
 let selectedMaterial = null;
 let masterLists = null;
@@ -409,12 +511,14 @@ function switchView(id, pushHistoryFlag = true) {
 }
 
 function backToSearch() {
+  stopLiveScan();
   if (currentView !== 'viewSearch') {
     history.back();
   }
 }
 
 function showHistory() {
+  stopLiveScan();
   switchView('viewHistory');
   loadHistory();
 }
@@ -477,9 +581,153 @@ function selectMaterial(item) {
   switchView('viewForm');
 }
 
-// ---------- QR 스캔 ----------
+// ---------- QR 스캔 (실시간 카메라 인식) ----------
+let qrStream = null;
+let qrScanLoopId = null;
+let qrScanning = false;
+
 function toggleQr() {
+  startLiveScan();
+}
+
+function startLiveScan() {
+  const overlay = document.getElementById('qrScanOverlay');
+  const statusEl = document.getElementById('qrScanStatus');
+  const video = document.getElementById('qrVideo');
+
+  overlay.classList.add('active');
+  statusEl.textContent = '카메라를 켜는 중...';
+  qrScanning = true;
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    statusEl.textContent = '이 브라우저에서는 실시간 카메라를 지원하지 않습니다. 아래 버튼으로 사진 촬영해서 인식해주세요.';
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: 'environment' } },
+    audio: false
+  }).then(function (stream) {
+    qrStream = stream;
+    video.srcObject = stream;
+    video.onloadedmetadata = function () {
+      video.play();
+      statusEl.textContent = 'QR코드를 사각형 안에 맞춰주세요';
+      scanLoop_(video, statusEl);
+    };
+  }).catch(function (err) {
+    statusEl.textContent = '카메라를 사용할 수 없습니다 (' + (err.message || err.name) + '). 아래 버튼으로 사진 촬영해서 인식해주세요.';
+  });
+}
+
+// 매 프레임 캡처 → jsQR 인식 시도 (일정 주기로는 이진화 버전도 시도)
+function scanLoop_(video, statusEl) {
+  if (!qrScanning) return;
+
+  const canvas = document.createElement('canvas');
+  const vw = video.videoWidth, vh = video.videoHeight;
+
+  if (vw && vh) {
+    // 처리 속도를 위해 너무 큰 해상도는 축소
+    const MAX_SIZE = 900;
+    let w = vw, h = vh;
+    if (Math.max(w, h) > MAX_SIZE) {
+      const scale = MAX_SIZE / Math.max(w, h);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+    }
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+
+    try {
+      const imageData = ctx.getImageData(0, 0, w, h);
+      let code = jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+
+      // 매 프레임 이진화까지 하면 무거우니, 약 6프레임에 한 번만 보조로 시도
+      if (!code && (scanLoop_.frameCount = (scanLoop_.frameCount || 0) + 1) % 6 === 0) {
+        const binaryData = binarizeImageData_(imageData);
+        code = jsQR(binaryData, w, h, { inversionAttempts: 'attemptBoth' });
+      }
+
+      if (code && code.data) {
+        statusEl.textContent = '인식 완료!';
+        document.getElementById('searchInput').value = code.data;
+        stopLiveScan();
+        doSearch();
+        return;
+      }
+    } catch (e) {
+      // 프레임 처리 중 일시적 오류는 무시하고 다음 프레임 계속 시도
+    }
+  }
+
+  qrScanLoopId = requestAnimationFrame(function () { scanLoop_(video, statusEl); });
+}
+
+function stopLiveScan() {
+  qrScanning = false;
+  if (qrScanLoopId) {
+    cancelAnimationFrame(qrScanLoopId);
+    qrScanLoopId = null;
+  }
+  if (qrStream) {
+    qrStream.getTracks().forEach(function (t) { t.stop(); });
+    qrStream = null;
+  }
+  document.getElementById('qrScanOverlay').classList.remove('active');
+}
+
+function switchToPhotoMode() {
+  stopLiveScan();
   document.getElementById('qrFileInput').click();
+}
+
+// ---------- QR 인식률 개선용: 흑백 이진화(Otsu 자동 임계값) ----------
+// 사진의 밝기 분포를 분석해 가장 적절한 흑/백 기준값을 자동으로 찾아
+// 흐릿하거나 조명이 고르지 않은 QR 사진도 뚜렷한 흑백으로 변환해줌.
+function binarizeImageData_(imageData) {
+  const data = imageData.data;
+  const len = data.length;
+  const gray = new Uint8ClampedArray(len / 4);
+  const histogram = new Array(256).fill(0);
+
+  for (let i = 0, j = 0; i < len; i += 4, j++) {
+    // 표준 그레이스케일 변환(사람 눈의 밝기 인지 가중치 반영)
+    const g = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
+    gray[j] = g;
+    histogram[g]++;
+  }
+
+  // Otsu's method: 두 그룹(흑/백) 간 분산이 최대가 되는 임계값 탐색
+  const total = gray.length;
+  let sum = 0;
+  for (let t = 0; t < 256; t++) sum += t * histogram[t];
+
+  let sumB = 0, wB = 0, maxVar = 0, threshold = 127;
+  for (let t = 0; t < 256; t++) {
+    wB += histogram[t];
+    if (wB === 0) continue;
+    const wF = total - wB;
+    if (wF === 0) break;
+    sumB += t * histogram[t];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if (between > maxVar) {
+      maxVar = between;
+      threshold = t;
+    }
+  }
+
+  const out = new Uint8ClampedArray(len);
+  for (let i = 0, j = 0; i < len; i += 4, j++) {
+    const v = gray[j] > threshold ? 255 : 0;
+    out[i] = out[i + 1] = out[i + 2] = v;
+    out[i + 3] = 255;
+  }
+  return out;
 }
 
 function handleQrFile(event) {
@@ -531,9 +779,20 @@ function handleQrFile(event) {
             ctx.drawImage(img, 0, 0, w, h);
 
             const imageData = ctx.getImageData(0, 0, w, h);
+
+            // 1차 시도: 원본 그대로
             code = jsQR(imageData.data, imageData.width, imageData.height, {
               inversionAttempts: 'attemptBoth'
             });
+
+            // 2차 시도: 실패 시 흑백을 뚜렷하게 만든(이진화) 버전으로 재시도.
+            // 흐릿하거나 조명이 고르지 않은 사진에서 인식률을 크게 높여줌.
+            if (!code || !code.data) {
+              const binaryData = binarizeImageData_(imageData);
+              code = jsQR(binaryData, imageData.width, imageData.height, {
+                inversionAttempts: 'attemptBoth'
+              });
+            }
 
             // 다음 시도 전 캔버스 메모리 정리
             canvas.width = 0;
