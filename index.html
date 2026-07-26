@@ -303,7 +303,7 @@
 
 <script>
 // ⚠️ Apps Script 배포 후 나온 웹앱 URL(.../exec)로 반드시 교체하세요.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8aDpuQrCfOBE6IWSNuAC7_gc0aCNgs3kmYrV0pht1px5j8bFPlK1uzojGlxRFjQAf/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzG2qdcI0Zu9aCeBB4d5ctVZVkHsQHz7FmrmMdUDZmCDhqkZzkTXU_Uvx60w3-raPFi/exec';
 
 let selectedMaterial = null;
 let masterLists = null;
@@ -505,48 +505,57 @@ function handleQrFile(event) {
       showError({ message: '이미지를 불러오지 못했습니다.' });
     };
     img.onload = function () {
-      try {
-        const candidateSizes = [800, 1400, 2200];
-        let code = null;
+      // 토스트("분석 중...")가 화면에 실제로 그려질 시간을 준 뒤 무거운 연산 시작.
+      // (안 그러면 브라우저가 연산으로 바로 멈춰버려서 "분석 중" 문구조차 안 보일 수 있음)
+      setTimeout(function () {
+        try {
+          // 해상도 단계를 2단계로 줄여 처리량을 크게 낮춤 (기존 3단계는 저사양 폰에서 화면이 멈추는 원인이 됨)
+          const candidateSizes = [900, 1600];
+          let code = null;
 
-        for (let i = 0; i < candidateSizes.length; i++) {
-          const MAX_SIZE = candidateSizes[i];
-          let w = img.width;
-          let h = img.height;
-          if (w > MAX_SIZE || h > MAX_SIZE) {
-            const scale = MAX_SIZE / Math.max(w, h);
-            w = Math.round(w * scale);
-            h = Math.round(h * scale);
+          for (let i = 0; i < candidateSizes.length; i++) {
+            const MAX_SIZE = candidateSizes[i];
+            let w = img.width;
+            let h = img.height;
+            if (w > MAX_SIZE || h > MAX_SIZE) {
+              const scale = MAX_SIZE / Math.max(w, h);
+              w = Math.round(w * scale);
+              h = Math.round(h * scale);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const imageData = ctx.getImageData(0, 0, w, h);
+            code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'attemptBoth'
+            });
+
+            // 다음 시도 전 캔버스 메모리 정리
+            canvas.width = 0;
+            canvas.height = 0;
+
+            if (code && code.data) break;
+            if (Math.max(img.width, img.height) <= MAX_SIZE) break;
           }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, w, h);
+          clearTimeout(timeoutId);
 
-          const imageData = ctx.getImageData(0, 0, w, h);
-          code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'attemptBoth'
-          });
-
-          if (code && code.data) break;
-          if (Math.max(img.width, img.height) <= MAX_SIZE) break;
+          if (code && code.data) {
+            document.getElementById('searchInput').value = code.data;
+            doSearch();
+          } else {
+            showError({ message: 'QR코드를 인식하지 못했습니다. 화면 전체에 QR코드가 꽉 차게, 흔들리지 않도록 다시 촬영해주세요.' });
+          }
+        } catch (err) {
+          clearTimeout(timeoutId);
+          showError({ message: '분석 중 오류가 발생했습니다: ' + err.message });
         }
-
-        clearTimeout(timeoutId);
-
-        if (code && code.data) {
-          document.getElementById('searchInput').value = code.data;
-          doSearch();
-        } else {
-          showError({ message: 'QR코드를 인식하지 못했습니다. 화면 전체에 QR코드가 꽉 차게, 흔들리지 않도록 다시 촬영해주세요.' });
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        showError({ message: '분석 중 오류가 발생했습니다: ' + err.message });
-      }
+      }, 50);
     };
     img.src = evt.target.result;
   };
