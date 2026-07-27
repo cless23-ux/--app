@@ -163,6 +163,60 @@
     }
     .stock-badge.low { background: #fee2e2; color: #991b1b; }
 
+    /* ---- 저재고 알림 패널 ---- */
+    .lowstock-panel {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .lowstock-panel.active { display: block; }
+    .lowstock-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 14px;
+      color: #9a3412;
+      margin-bottom: 8px;
+    }
+    .lowstock-header .count-badge {
+      background: #ea580c;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 1px 8px;
+      border-radius: 10px;
+    }
+    .lowstock-list { display: flex; flex-direction: column; gap: 6px; }
+    .lowstock-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .lowstock-item .li-name { font-weight: 600; color: var(--text); }
+    .lowstock-item .li-stock { color: #c2410c; font-weight: 700; white-space: nowrap; margin-left: 8px; }
+    .lowstock-toggle {
+      background: none;
+      border: none;
+      color: #9a3412;
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+      margin-top: 6px;
+    }
+
+    .card.low-stock-card { background: #fff7ed; border-color: #fdba74; }
+
     .selected-card {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -170,6 +224,7 @@
       padding: 14px;
       margin-bottom: 16px;
     }
+    .selected-card.low-stock-card { background: #fff7ed; border-color: #fdba74; }
     .selected-card .name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
     .selected-card .meta { font-size: 13px; color: var(--text-light); }
 
@@ -333,6 +388,16 @@
     </div>
     <button class="btn-secondary" onclick="doSearch()">검색</button>
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
+
+    <!-- 저재고 알림 패널 (재고 30% 미만 자재) -->
+    <div id="lowStockPanel" class="lowstock-panel" style="margin-top:16px;">
+      <div class="lowstock-header">
+        ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
+      </div>
+      <div class="lowstock-list" id="lowStockList"></div>
+      <button class="lowstock-toggle" id="lowStockToggleBtn" onclick="toggleLowStockExpand()" style="display:none;"></button>
+    </div>
+
     <div id="searchResults"></div>
   </div>
 
@@ -405,7 +470,7 @@
 
 <script>
 // ⚠️ Apps Script 배포 후 나온 웹앱 URL(.../exec)로 반드시 교체하세요.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMVfqg1uRCqhn9Jz760IoNDg8uQshvFLqLEaxdB-UsRwhi_ux0iZnlaB1zwpnErDea/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygLagi19784h2wfzxYmROrqp5pKjfqTXF2wLDPZzN07NPFUhzd12CGTh9bMXgRf5Zg/exec';
 
 let selectedMaterial = null;
 let masterLists = null;
@@ -470,7 +535,65 @@ window.onload = function () {
     fillSelect('histProject', lists.projects, '전체 프로젝트', true);
     fillDatalist('histShipList', lists.ships);
   }).catch(showError);
+
+  loadLowStockPanel();
 };
+
+// ---------- 저재고 알림 패널 ----------
+let lowStockItems = [];
+let lowStockExpanded = false;
+const LOWSTOCK_COLLAPSED_COUNT = 3;
+
+function loadLowStockPanel() {
+  apiPost('lowStock', {})
+    .then(function (items) {
+      lowStockItems = items || [];
+      renderLowStockPanel();
+    })
+    .catch(function () { /* 알림 패널은 조용히 실패 처리 (검색은 계속 가능해야 함) */ });
+}
+
+function renderLowStockPanel() {
+  const panel = document.getElementById('lowStockPanel');
+  const listEl = document.getElementById('lowStockList');
+  const countEl = document.getElementById('lowStockCount');
+  const toggleBtn = document.getElementById('lowStockToggleBtn');
+
+  if (!lowStockItems.length) {
+    panel.classList.remove('active');
+    return;
+  }
+
+  panel.classList.add('active');
+  countEl.textContent = lowStockItems.length + '건';
+
+  const visibleItems = lowStockExpanded ? lowStockItems : lowStockItems.slice(0, LOWSTOCK_COLLAPSED_COUNT);
+  listEl.innerHTML = '';
+  visibleItems.forEach(function (item) {
+    const div = document.createElement('div');
+    div.className = 'lowstock-item';
+    div.innerHTML =
+      '<span class="li-name">' + escapeHtml(item.name) + '</span>' +
+      '<span class="li-stock">' + item.stock + '/' + item.inQty + ' ' + escapeHtml(item.unit || '') + ' (' + item.ratio + '%)</span>';
+    div.onclick = function () {
+      document.getElementById('searchInput').value = item.code;
+      doSearch();
+    };
+    listEl.appendChild(div);
+  });
+
+  if (lowStockItems.length > LOWSTOCK_COLLAPSED_COUNT) {
+    toggleBtn.style.display = 'inline-block';
+    toggleBtn.textContent = lowStockExpanded ? '접기' : ('나머지 ' + (lowStockItems.length - LOWSTOCK_COLLAPSED_COUNT) + '건 더보기');
+  } else {
+    toggleBtn.style.display = 'none';
+  }
+}
+
+function toggleLowStockExpand() {
+  lowStockExpanded = !lowStockExpanded;
+  renderLowStockPanel();
+}
 
 window.onpopstate = function (event) {
   if (event.state && event.state.view) {
@@ -539,17 +662,16 @@ function doSearch() {
       resultsEl.innerHTML = '';
       items.forEach(function (item) {
         const div = document.createElement('div');
-        div.className = 'card';
-        const lowStock = Number(item.stock) <= 0;
+        div.className = 'card' + (item.lowStock ? ' low-stock-card' : '');
         const thumbHtml = item.photo
           ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">'
           : '📦';
         div.innerHTML =
           '<div class="card-thumb">' + thumbHtml + '</div>' +
           '<div class="card-info">' +
-            '<div class="name">' + escapeHtml(item.name) + '</div>' +
+            '<div class="name">' + escapeHtml(item.name) + (item.lowStock ? ' ⚠️' : '') + '</div>' +
             '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
-            '<div class="meta" style="margin-top:6px;">재고: <span class="stock-badge ' + (lowStock ? 'low' : '') + '">' +
+            '<div class="meta" style="margin-top:6px;">재고: <span class="stock-badge ' + (item.lowStock ? 'low' : '') + '">' +
               item.stock + ' ' + escapeHtml(item.unit || '') + '</span></div>' +
           '</div>';
         div.onclick = function () { selectMaterial(item); };
@@ -567,11 +689,13 @@ function selectMaterial(item) {
   const thumbHtml = item.photo
     ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">'
     : '📦';
-  document.getElementById('selectedInfo').innerHTML =
+  const cardEl = document.getElementById('selectedInfo');
+  cardEl.className = 'selected-card' + (item.lowStock ? ' low-stock-card' : '');
+  cardEl.innerHTML =
     '<div style="display:flex; gap:12px; align-items:center;">' +
       '<div class="card-thumb" id="selectedThumb">' + thumbHtml + '</div>' +
       '<div class="card-info">' +
-        '<div class="name">' + escapeHtml(item.name) + '</div>' +
+        '<div class="name">' + escapeHtml(item.name) + (item.lowStock ? ' ⚠️ 재고부족' : '') + '</div>' +
         '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
         '<div class="meta">현재재고: ' + item.stock + ' ' + escapeHtml(item.unit || '') + '</div>' +
       '</div>' +
@@ -944,6 +1068,7 @@ function submitForm() {
         document.getElementById('searchResults').innerHTML = '';
         selectedMaterial = null;
         backToSearch();
+        loadLowStockPanel(); // 불출 후 재고가 바뀌었을 수 있으므로 알림 패널 갱신
       } else {
         showError(res || { message: '불출 등록에 실패했습니다.' });
       }
