@@ -1,1189 +1,388 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>자재 관리마스터</title>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LUXCO 자재 관리마스터</title>
 
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/png" href="./icon-192.png">
-  <link rel="apple-touch-icon" href="./icon-192.png">
-  <meta name="theme-color" content="#2563eb">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="자재 관리마스터">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <style>
-    :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --danger: #dc2626;
-      --bg: #f4f6f9;
-      --card: #ffffff;
-      --border: #e2e8f0;
-      --text: #1e293b;
-      --text-light: #64748b;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg); padding-bottom: 24px; }
-
-    .hero {
-      position: relative;
-      height: 180px;
-      background: linear-gradient(135deg, #0f1e3c 0%, #1d4ed8 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 20px;
-      color: #fff;
-    }
-    .hero .hero-logo {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      display: flex;
-      align-items: center;
-    }
-    .hero .logo-text {
-      font-size: 24px;
-      font-weight: 900;
-      color: #ffffff;
-      letter-spacing: 1.5px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    .hero .hero-sub {
-      font-size: 12px;
-      opacity: 0.85;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-    .hero .hero-title {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-    .hero .hero-desc {
-      font-size: 13px;
-      font-weight: 600;
-      opacity: 0.95;
-    }
-    .hero .hist-btn {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .hero .hero-qr-btn {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      background: rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .view { display: none; padding: 16px; }
-    .view.active { display: block; }
-
-    .search-box-wrapper {
-      position: relative;
-      margin-bottom: 12px;
-    }
-    .search-box { 
-      display: flex; 
-      gap: 8px; 
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      font-size: 15px;
-      background: #fff;
-    }
-    .search-box input { flex: 1; }
-    
-    .btn-search {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 0 18px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .icon-btn {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 0 16px;
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px; font-weight: 600; }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: box-shadow .15s;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    .card:active { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .card-thumb {
-      width: 56px;
-      height: 56px;
-      flex-shrink: 0;
-      border-radius: 10px;
-      overflow: hidden;
-      background: #f1f5f9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      border: 1px solid var(--border);
-    }
-    .card-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .card-info { flex: 1; min-width: 0; }
-    .card .name { font-weight: 700; font-size: 15px; }
-    .card .meta { font-size: 13px; color: var(--text-light); margin-top: 4px; }
-    .stock-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      background: #dcfce7; color: #166534;
-    }
-    .stock-badge.low { background: #fee2e2; color: #991b1b; }
-
-    /* ---- 저재고 알림 패널 ---- */
-    .lowstock-panel {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-top: 14px;
-      margin-bottom: 14px;
-      display: none;
-    }
-    .lowstock-panel.active { display: block; }
-    .lowstock-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 700;
-      font-size: 14px;
-      color: #9a3412;
-      margin-bottom: 8px;
-    }
-    .lowstock-header .count-badge {
-      background: #ea580c;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 1px 8px;
-      border-radius: 10px;
-    }
-    .lowstock-list { display: flex; flex-direction: column; gap: 6px; }
-    .lowstock-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fff;
-      border: 1px solid #fed7aa;
-      border-radius: 8px;
-      padding: 8px 10px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .lowstock-item .li-name { font-weight: 600; color: var(--text); }
-    .lowstock-item .li-stock { color: #c2410c; font-weight: 700; white-space: nowrap; margin-left: 8px; }
-    .lowstock-toggle {
-      background: none;
-      border: none;
-      color: #9a3412;
-      font-size: 12px;
-      text-decoration: underline;
-      cursor: pointer;
-      padding: 0;
-      margin-top: 6px;
-    }
-
-    .card.low-stock-card { background: #fff7ed; border-color: #fdba74; }
-
-    .selected-card {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 16px;
-    }
-    .selected-card.low-stock-card { background: #fff7ed; border-color: #fdba74; }
-    .selected-card .name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
-    .selected-card .meta { font-size: 13px; color: var(--text-light); }
-
-    .btn-primary {
-      width: 100%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    .btn-primary:disabled { background: #94a3b8; }
-    .btn-secondary {
-      width: 100%;
-      background: #fff;
-      color: var(--primary);
-      border: 1px solid var(--primary);
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-
-    .filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
-    .filter-row select { font-size: 13px; padding: 8px; }
-
-    .hist-item {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    .hist-item .top-row { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px; }
-    .hist-item .sub { color: var(--text-light); }
-
-    .empty { text-align: center; color: var(--text-light); padding: 40px 0; font-size: 14px; }
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e293b;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 14px;
-      z-index: 300;
-      display: none;
-    }
-    .toast.error { background: var(--danger); }
-    .spinner { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
-
-    /* ---- 실시간 QR 스캔 오버레이 ---- */
-    .qr-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000;
-      z-index: 200;
-      flex-direction: column;
-    }
-    .qr-overlay.active { display: flex; }
-    .qr-overlay-header {
-      color: #fff;
-      padding: 16px 16px calc(12px + env(safe-area-inset-top, 0px));
-      padding-top: calc(16px + env(safe-area-inset-top, 0px));
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .qr-close-btn {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: #fff;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .qr-video-wrap {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      background: #000;
-    }
-    #qrVideo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .qr-frame {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 68%;
-      max-width: 320px;
-      aspect-ratio: 1 / 1;
-      pointer-events: none;
-      border-radius: 16px;
-      box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
-    }
-    .qr-frame::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: 3px solid rgba(255,255,255,0.9);
-      border-radius: 16px;
-    }
-    .qr-overlay-footer {
-      padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    .qr-scan-status {
-      color: #fff;
-      font-size: 13px;
-      opacity: 0.85;
-      text-align: center;
-    }
+    body { -webkit-tap-highlight-color: transparent; user-select: none; }
+    .scanner-container video { object-fit: cover !important; border-radius: 0.75rem; }
   </style>
 </head>
-<body>
-<div class="app">
-  <div class="hero">
-    <div class="hero-logo">
-      <span class="logo-text">LUXCO</span>
+<body class="bg-gray-100 text-gray-800 antialiased font-sans">
+
+  <!-- 헤더 -->
+  <header class="bg-blue-900 text-white sticky top-0 z-50 shadow-md">
+    <div class="max-w-md mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold tracking-wider">LUXCO</h1>
+          <p class="text-[10px] text-blue-200">Upright Green Energy Partner</p>
+        </div>
+      </div>
+      <div class="mt-3 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold flex items-center gap-1.5">
+            📦 자재 관리마스터
+          </h2>
+          <p class="text-xs text-blue-200">선박생산부</p>
+        </div>
+        <button onclick="toggleScanner()" class="bg-blue-600 hover:bg-blue-500 text-xs px-3 py-1.5 rounded-lg border border-blue-400 flex items-center gap-1">
+          📷 QR 스캔
+        </button>
+      </div>
     </div>
-    <button class="hist-btn" onclick="showHistory()">이전기록</button>
-    <div class="hero-sub">Upright Green Energy Partner</div>
-    <div class="hero-title">📦 자재 관리마스터</div>
-    <div class="hero-desc">선박생산부</div>
+  </header>
 
-    <button class="hero-qr-btn" onclick="toggleQr()" aria-label="QR 스캔">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/>
-        <path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/>
-        <path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/>
-        <path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/>
-        <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" fill="currentColor" stroke="none"/>
-      </svg>
-      QR 스캔
-    </button>
-  </div>
+  <!-- 메인 영역 -->
+  <main class="max-w-md mx-auto p-4 space-y-4">
 
-  <!-- ================= 검색 화면 ================= -->
-  <div id="viewSearch" class="view active">
-    <div class="search-box-wrapper">
-      <div class="search-box">
-        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter'){event.preventDefault();doSearch(true);}">
-        <button class="btn-search" onclick="doSearch(true)">검색</button>
+    <!-- QR 스캐너 -->
+    <div id="scannerSection" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-sm font-semibold text-gray-700">QR 코드 스캔</h2>
+        <button onclick="toggleScanner()" class="text-gray-400 hover:text-gray-600 text-sm">닫기</button>
+      </div>
+      <div id="reader" class="scanner-container overflow-hidden rounded-lg"></div>
+    </div>
+
+    <!-- 검색 섹션 -->
+    <div id="searchSection" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-3">
+      <div class="flex gap-2">
+        <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') executeSearch()" placeholder="자재명 또는 코드를 입력하세요"
+               class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="executeSearch()" class="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-lg font-medium hover:bg-blue-700">
+          검색
+        </button>
+      </div>
+
+      <!-- 검색 결과 -->
+      <div id="searchResults" class="divide-y divide-gray-100 max-h-60 overflow-y-auto hidden"></div>
+    </div>
+
+    <!-- 불출 등록 폼 -->
+    <div id="dispatchForm" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-4">
+      <div class="border-b pb-3 flex justify-between items-start">
+        <div>
+          <span class="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded" id="dispCode"></span>
+          <h3 class="font-bold text-gray-900 text-base mt-1" id="dispName"></h3>
+          <p class="text-xs text-gray-500" id="dispSpec"></p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-gray-500">현재 재고</span>
+          <p class="font-bold text-blue-600 text-lg" id="dispStock"></p>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">프로젝트</label>
+          <select id="fProject" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="">선택하세요</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">호선</label>
+          <input type="text" id="fShip" list="shipList" placeholder="호선명 입력 또는 선택" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+          <datalist id="shipList"></datalist>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">불출 수량</label>
+          <input type="number" id="fQty" min="1" placeholder="수량 입력" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">불출 수령자</label>
+          <select id="fUser" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="">선택하세요</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">비고</label>
+          <input type="text" id="fNote" placeholder="비고 사항 입력 (선택)" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="backToSearch()" class="w-1/3 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg text-sm transition-colors">취소</button>
+        <button id="submitBtn" onclick="submitForm()" class="w-2/3 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm shadow transition-colors">불출 등록</button>
       </div>
     </div>
 
-    <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
-
-    <!-- 검색 결과 목록 -->
-    <div id="searchResults"></div>
-
-    <!-- 재고 부족 알림 패널 -->
-    <div id="lowStockPanel" class="lowstock-panel">
-      <div class="lowstock-header">
-        ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
+    <!-- 재고 부족 자재 알림 -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+      <h3 class="text-sm font-bold text-red-600 flex items-center gap-1.5 mb-2">
+        ⚠️ 재고 부족 자재 목록
+      </h3>
+      <div id="lowStockList" class="divide-y divide-gray-100 text-xs text-gray-600">
+        <p class="py-2 text-gray-400">데이터를 불러오는 중...</p>
       </div>
-      <div class="lowstock-list" id="lowStockList"></div>
-      <button class="lowstock-toggle" id="lowStockToggleBtn" onclick="toggleLowStockExpand()" style="display:none;"></button>
-    </div>
-  </div>
-
-  <!-- ================= 실시간 QR 스캔 오버레이 ================= -->
-  <div id="qrScanOverlay" class="qr-overlay">
-    <div class="qr-overlay-header">
-      <span>QR코드를 화면에 비춰주세요</span>
-      <button class="qr-close-btn" onclick="stopLiveScan()">✕</button>
-    </div>
-    <div class="qr-video-wrap">
-      <video id="qrVideo" playsinline autoplay muted></video>
-      <div class="qr-frame"></div>
-    </div>
-    <div class="qr-overlay-footer">
-      <div id="qrScanStatus" class="qr-scan-status">카메라를 켜는 중...</div>
-      <button class="btn-secondary" style="max-width:280px;" onclick="switchToPhotoMode()">대신 사진으로 촬영해서 인식</button>
-    </div>
-  </div>
-
-  <!-- ================= 불출 입력 화면 ================= -->
-  <div id="viewForm" class="view">
-    <div class="selected-card" id="selectedInfo"></div>
-    <button class="btn-secondary" id="photoUploadBtn" onclick="triggerPhotoUpload()">📷 사진 등록/변경</button>
-    <input type="file" id="photoFileInput" accept="image/*" style="display:none" onchange="handlePhotoFile(event)">
-
-    <div class="field" style="margin-top:16px;">
-      <label>프로젝트명</label>
-      <select id="fProject"></select>
-    </div>
-    <div class="field">
-      <label>호선명</label>
-      <input id="fShip" type="text" list="shipList" placeholder="호선명 입력 또는 목록에서 선택" autocomplete="off">
-      <datalist id="shipList"></datalist>
-    </div>
-    <div class="field">
-      <label>사용수량</label>
-      <input id="fQty" type="number" min="1" placeholder="수량 입력">
-    </div>
-    <div class="field">
-      <label>사용자(이름)</label>
-      <select id="fUser"></select>
-    </div>
-    <div class="field">
-      <label>비고 (선택)</label>
-      <textarea id="fNote" rows="2" placeholder="특이사항 입력"></textarea>
     </div>
 
-    <button class="btn-primary" id="submitBtn" onclick="submitForm()">불출 등록</button>
-    <button class="btn-secondary" onclick="backToSearch()">검색으로 돌아가기</button>
-  </div>
+  </main>
 
-  <!-- ================= 이전기록 화면 ================= -->
-  <div id="viewHistory" class="view">
-    <div class="filter-row">
-      <select id="histProject" onchange="loadHistory()"><option value="">전체 프로젝트</option></select>
-      <input id="histShip" type="text" list="histShipList" placeholder="호선명 입력 또는 선택" autocomplete="off"
-             onchange="loadHistory()" onkeyup="if(event.key==='Enter'){event.preventDefault();loadHistory();}">
-      <datalist id="histShipList"></datalist>
-    </div>
-    <div class="search-box">
-      <input id="histKeyword" type="text" placeholder="자재명/코드 검색" onkeyup="if(event.key==='Enter'){event.preventDefault();loadHistory();}">
-      <button class="icon-btn" onclick="loadHistory()">🔍</button>
-    </div>
-    <div id="historyList"></div>
-    <button class="btn-secondary" onclick="backToSearch()">검색으로 돌아가기</button>
-  </div>
-</div>
+  <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg hidden z-50"></div>
 
-<div class="toast" id="toast"></div>
+  <script>
+    // ⚠️ 아래 큰따옴표 안에 본인의 Google Apps Script 배포 URL을 넣어주세요!
+    const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz91LlNEZBaXzusgwIeEK0BN068KrlFHWEAA07RyXK4cVrul4Dm1xoHajiKxB7U1YVz/exec";
 
-<script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3N0LN0ggQ3010clHpPkE-VvUMkjWlmSJUcfecuKmDijEqNFw-6qzkRKy3EGczHSvU/exec';
+    let selectedMaterial = null;
+    let html5QrCode = null;
 
-let selectedMaterial = null;
-let masterLists = null;
-let currentView = 'viewSearch';
-let searchDebounceTimer = null;
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./service-worker.js').catch(function (err) {
-      console.warn('서비스워커 등록 생략 또는 실패:', err);
+    window.addEventListener('DOMContentLoaded', () => {
+      loadInitialData();
+      loadLowStockPanel();
     });
-  });
-}
 
-// Google Apps Script 통신용 (CORS 및 리다이렉트 우회)
-function apiPost(action, payload) {
-  return new Promise(function (resolve, reject) {
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('YOUR_APPS_SCRIPT') !== -1) {
-      reject({ message: 'APPS_SCRIPT_URL이 설정되지 않았습니다.' });
-      return;
+    // CORS 및 GitHub Pages 환경 대응 API 통신 함수
+    async function apiFetch(options) {
+      try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          return new Promise((resolve, reject) => {
+            let runner = google.script.run
+              .withSuccessHandler(res => resolve(res))
+              .withFailureHandler(err => reject(err));
+            
+            if (options.action === 'getInitialData') runner.getInitialData();
+            else if (options.action === 'search') runner.searchMaterialsLite(options.keyword);
+            else if (options.action === 'getLowStock') runner.getLowStockMaterials();
+            else if (options.action === 'getMaterialByCode') runner.getMaterialByCode(options.code);
+            else if (options.action === 'submitDispatch') runner.submitDispatch(options.data);
+          });
+        } else {
+          // GitHub Pages 및 외부 브라우저 환경 실행
+          if (options.method === 'POST') {
+            const res = await fetch(GAS_WEBAPP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(options)
+            });
+            return await res.json();
+          } else {
+            const queryParams = new URLSearchParams(options).toString();
+            const res = await fetch(`${GAS_WEBAPP_URL}?${queryParams}`);
+            const responseData = await res.json();
+            return (responseData && responseData.data !== undefined) ? responseData.data : responseData;
+          }
+        }
+      } catch (err) {
+        throw new Error('통신 오류: ' + err.message);
+      }
     }
 
-    const timeoutId = setTimeout(function () {
-      reject({ message: '서버 응답이 없습니다 (타임아웃).' });
-    }, 15000);
+    async function loadInitialData() {
+      try {
+        const data = await apiFetch({ action: 'getInitialData' }) || {};
+        const projects = Array.isArray(data.projects) ? data.projects : [];
+        const users = Array.isArray(data.users) ? data.users : [];
+        const ships = Array.isArray(data.ships) ? data.ships : [];
 
-    const postData = new URLSearchParams();
-    postData.append('request', JSON.stringify({ action: action, payload: payload }));
+        const pSelect = document.getElementById('fProject');
+        pSelect.innerHTML = '<option value="">선택하세요</option>';
+        projects.forEach(p => pSelect.innerHTML += `<option value="${p}">${p}</option>`);
 
-    fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'cors',
-      redirect: 'follow',
-      body: postData
-    })
-      .then(function (r) {
-        clearTimeout(timeoutId);
-        if (!r.ok) {
-          reject({ message: '서버 오류 (HTTP ' + r.status + ')' });
+        const uSelect = document.getElementById('fUser');
+        uSelect.innerHTML = '<option value="">선택하세요</option>';
+        users.forEach(u => uSelect.innerHTML += `<option value="${u}">${u}</option>`);
+
+        const sList = document.getElementById('shipList');
+        sList.innerHTML = '';
+        ships.forEach(s => sList.innerHTML += `<option value="${s}">`);
+      } catch (err) {
+        console.error('초기 데이터 로딩 오류:', err);
+      }
+    }
+
+    async function executeSearch() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      const resContainer = document.getElementById('searchResults');
+      if (!keyword) return;
+
+      showToast('검색 중...');
+      try {
+        const results = await apiFetch({ action: 'search', keyword: keyword });
+        resContainer.innerHTML = '';
+        
+        if (!Array.isArray(results) || results.length === 0) {
+          resContainer.innerHTML = '<div class="p-3 text-xs text-gray-400 text-center">검색 결과가 없습니다.</div>';
+        } else {
+          results.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'p-3 hover:bg-blue-50 cursor-pointer transition-colors';
+            div.innerHTML = `
+              <div class="flex justify-between items-center">
+                <span class="font-semibold text-sm text-gray-800">${item.name}</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">재고: ${item.stock} ${item.unit}</span>
+              </div>
+              <div class="text-xs text-gray-500 mt-0.5">${item.code} | ${item.spec}</div>
+            `;
+            div.onclick = () => selectMaterial(item);
+            resContainer.appendChild(div);
+          });
+        }
+        resContainer.classList.remove('hidden');
+      } catch (err) {
+        showError(err);
+      }
+    }
+
+    function selectMaterial(item) {
+      selectedMaterial = item;
+      document.getElementById('searchResults').classList.add('hidden');
+      document.getElementById('searchInput').value = '';
+
+      document.getElementById('dispCode').innerText = item.code;
+      document.getElementById('dispName').innerText = item.name;
+      document.getElementById('dispSpec').innerText = item.spec || '규격 없음';
+      document.getElementById('dispStock').innerText = item.stock + ' ' + item.unit;
+
+      document.getElementById('searchSection').classList.add('hidden');
+      document.getElementById('dispatchForm').classList.remove('hidden');
+      stopScanner();
+    }
+
+    async function submitForm() {
+      if (!selectedMaterial) return showError({ message: '선택된 자재가 없습니다.' });
+
+      const project = document.getElementById('fProject').value;
+      const ship = document.getElementById('fShip').value.trim();
+      const qty = parseInt(document.getElementById('fQty').value, 10);
+      const user = document.getElementById('fUser').value;
+      const note = document.getElementById('fNote').value.trim();
+
+      if (!project) return showError({ message: '프로젝트를 선택해주세요.' });
+      if (!ship) return showError({ message: '호선명을 입력해주세요.' });
+      if (isNaN(qty) || qty <= 0) return showError({ message: '수량을 올바르게 입력해주세요.' });
+      if (qty > selectedMaterial.stock) return showError({ message: `재고(${selectedMaterial.stock})보다 많이 불출할 수 없습니다.` });
+      if (!user) return showError({ message: '수령자를 선택해주세요.' });
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      showToast('불출 등록 중...');
+
+      const payload = {
+        code: selectedMaterial.code,
+        name: selectedMaterial.name,
+        spec: selectedMaterial.spec || '',
+        unit: selectedMaterial.unit || '',
+        project: project,
+        ship: ship,
+        qty: qty,
+        user: user,
+        note: note
+      };
+
+      try {
+        const res = await apiFetch({ method: 'POST', action: 'submitDispatch', data: payload });
+        submitBtn.disabled = false;
+        if (res && res.success) {
+          showToast('불출 등록이 완료되었습니다.');
+          loadLowStockPanel();
+          backToSearch();
+        } else {
+          showError({ message: (res && res.message) || '등록에 실패했습니다.' });
+        }
+      } catch (err) {
+        submitBtn.disabled = false;
+        showError(err);
+      }
+    }
+
+    function backToSearch() {
+      selectedMaterial = null;
+      document.getElementById('fQty').value = '';
+      document.getElementById('fNote').value = '';
+      document.getElementById('dispatchForm').classList.add('hidden');
+      document.getElementById('searchSection').classList.remove('hidden');
+    }
+
+    function toggleScanner() {
+      const section = document.getElementById('scannerSection');
+      if (section.classList.contains('hidden')) {
+        section.classList.remove('hidden');
+        startScanner();
+      } else {
+        stopScanner();
+      }
+    }
+
+    function startScanner() {
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 200, height: 200 } },
+        async (decodedText) => {
+          stopScanner();
+          showToast('자재 조회 중...');
+          try {
+            const res = await apiFetch({ method: 'POST', action: 'getMaterialByCode', code: decodedText });
+            if (res && res.data) selectMaterial(res.data);
+            else showError({ message: '자재를 찾을 수 없습니다: ' + decodedText });
+          } catch (err) { showError(err); }
+        },
+        () => {}
+      ).catch(() => {
+        showError({ message: '카메라 권한을 확인해주세요.' });
+        stopScanner();
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          document.getElementById('scannerSection').classList.add('hidden');
+        }).catch(() => document.getElementById('scannerSection').classList.add('hidden'));
+      } else {
+        document.getElementById('scannerSection').classList.add('hidden');
+      }
+    }
+
+    async function loadLowStockPanel() {
+      try {
+        const list = await apiFetch({ action: 'getLowStock' });
+        const container = document.getElementById('lowStockList');
+        if (!Array.isArray(list) || list.length === 0) {
+          container.innerHTML = '<p class="py-2 text-gray-400">부족한 자재가 없습니다.</p>';
           return;
         }
-        return r.json();
-      })
-      .then(function (data) {
-        if (data !== undefined) resolve(data);
-      })
-      .catch(function (err) {
-        clearTimeout(timeoutId);
-        reject({ message: '네트워크 오류 또는 통신 실패: ' + err.message });
-      });
-  });
-}
-
-let lastBackPressedTime = 0;
-
-window.onload = function () {
-  history.replaceState({ view: 'viewSearch', depth: 1 }, null, location.href);
-  history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
-
-  apiPost('masterLists', {}).then(function (lists) {
-    if (lists) {
-      masterLists = lists;
-      fillSelect('fProject', lists.projects || [], '프로젝트 선택');
-      fillDatalist('shipList', lists.ships || []);
-      fillSelect('fUser', lists.users || [], '사용자 선택');
-      fillSelect('histProject', lists.projects || [], '전체 프로젝트', true);
-      fillDatalist('histShipList', lists.ships || []);
+        container.innerHTML = list.map(item => `
+          <div class="py-2 flex justify-between items-center">
+            <div>
+              <span class="font-medium text-gray-800">${item.name}</span>
+              <span class="text-gray-400 text-xs block">${item.code}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-red-500 font-bold">${item.stock} ${item.unit}</span>
+              <span class="text-gray-400 text-xs block">(최소: ${item.minStock})</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
     }
-  }).catch(showError);
 
-  loadLowStockPanel();
-};
-
-window.onpopstate = function (event) {
-  if (currentView !== 'viewSearch') {
-    switchView('viewSearch', false);
-    history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
-  } else {
-    const currentTime = new Date().getTime();
-    if (currentTime - lastBackPressedTime < 2000) {
-      history.back();
-    } else {
-      lastBackPressedTime = currentTime;
-      showToast('한 번 더 누르면 종료됩니다.');
-      history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
     }
-  }
-};
 
-let lowStockItems = [];
-let lowStockExpanded = false;
-const LOWSTOCK_COLLAPSED_COUNT = 3;
-
-function loadLowStockPanel() {
-  apiPost('lowStock', {})
-    .then(function (items) {
-      lowStockItems = items || [];
-      renderLowStockPanel();
-    })
-    .catch(function () {});
-}
-
-function renderLowStockPanel() {
-  const panel = document.getElementById('lowStockPanel');
-  const listEl = document.getElementById('lowStockList');
-  const countEl = document.getElementById('lowStockCount');
-  const toggleBtn = document.getElementById('lowStockToggleBtn');
-
-  if (!lowStockItems.length) {
-    panel.classList.remove('active');
-    return;
-  }
-
-  panel.classList.add('active');
-  countEl.textContent = lowStockItems.length + '건';
-
-  const visibleItems = lowStockExpanded ? lowStockItems : lowStockItems.slice(0, LOWSTOCK_COLLAPSED_COUNT);
-  listEl.innerHTML = '';
-  visibleItems.forEach(function (item) {
-    const div = document.createElement('div');
-    div.className = 'lowstock-item';
-    div.innerHTML =
-      '<span class="li-name">' + escapeHtml(item.name) + '</span>' +
-      '<span class="li-stock">' + item.stock + '/' + item.inQty + ' ' + escapeHtml(item.unit || '') + ' (' + item.ratio + '%)</span>';
-    div.onclick = function () {
-      document.getElementById('searchInput').value = item.code;
-      doSearch(true);
-    };
-    listEl.appendChild(div);
-  });
-
-  if (lowStockItems.length > LOWSTOCK_COLLAPSED_COUNT) {
-    toggleBtn.style.display = 'inline-block';
-    toggleBtn.textContent = lowStockExpanded ? '접기' : ('나머지 ' + (lowStockItems.length - LOWSTOCK_COLLAPSED_COUNT) + '건 더보기');
-  } else {
-    toggleBtn.style.display = 'none';
-  }
-}
-
-function toggleLowStockExpand() {
-  lowStockExpanded = !lowStockExpanded;
-  renderLowStockPanel();
-}
-
-function fillSelect(id, arr, placeholder, keepFirst) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (!keepFirst) el.innerHTML = '<option value="">' + placeholder + '</option>';
-  arr.forEach(function (v) {
-    const opt = document.createElement('option');
-    opt.value = v; opt.textContent = v;
-    el.appendChild(opt);
-  });
-}
-
-function fillDatalist(id, arr) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = '';
-  arr.forEach(function (v) {
-    const opt = document.createElement('option');
-    opt.value = v;
-    el.appendChild(opt);
-  });
-}
-
-function switchView(id, pushHistoryFlag = true) {
-  currentView = id;
-  document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
-  document.getElementById(id).classList.add('active');
-}
-
-function backToSearch() {
-  stopLiveScan();
-  if (currentView !== 'viewSearch') {
-    switchView('viewSearch');
-  }
-}
-
-function showHistory() {
-  stopLiveScan();
-  switchView('viewHistory');
-  loadHistory();
-}
-
-function handleSearchInput(kw) {
-  clearTimeout(searchDebounceTimer);
-  kw = kw.trim();
-  if (!kw) {
-    document.getElementById('searchResults').innerHTML = '';
-    return;
-  }
-  searchDebounceTimer = setTimeout(function () {
-    doSearch(false);
-  }, 200);
-}
-
-function doSearch(showPhoto = true) {
-  const kw = document.getElementById('searchInput').value.trim();
-  const resultsEl = document.getElementById('searchResults');
-  if (!kw) { resultsEl.innerHTML = ''; return; }
-  resultsEl.innerHTML = '<div class="spinner">검색 중...</div>';
-
-  apiPost('search', { keyword: kw })
-    .then(function (items) {
-      if (!items || !items.length) {
-        resultsEl.innerHTML = '<div class="empty">검색 결과가 없습니다.</div>';
-        return;
-      }
-      resultsEl.innerHTML = '';
-      items.forEach(function (item) {
-        const div = document.createElement('div');
-        div.className = 'card' + (item.lowStock ? ' low-stock-card' : '');
-        
-        let thumbHtml = '';
-        if (showPhoto) {
-          thumbHtml = '<div class="card-thumb">' + 
-            (item.photo ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">' : '📦') +
-            '</div>';
-        }
-
-        div.innerHTML =
-          thumbHtml +
-          '<div class="card-info">' +
-            '<div class="name">' + escapeHtml(item.name) + (item.lowStock ? ' ⚠️' : '') + '</div>' +
-            '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
-            '<div class="meta" style="margin-top:6px;">재고: <span class="stock-badge ' + (item.lowStock ? 'low' : '') + '">' +
-              item.stock + ' ' + escapeHtml(item.unit || '') + '</span></div>' +
-          '</div>';
-        div.onclick = function () { selectMaterial(item); };
-        resultsEl.appendChild(div);
-      });
-    })
-    .catch(function (err) {
-      resultsEl.innerHTML = '<div class="empty" style="color:var(--danger);">' + escapeHtml((err && err.message) || '검색 중 오류가 발생했습니다.') + '</div>';
-      showError(err);
-    });
-}
-
-function selectMaterial(item) {
-  selectedMaterial = item;
-  const thumbHtml = item.photo
-    ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">'
-    : '📦';
-  const cardEl = document.getElementById('selectedInfo');
-  cardEl.className = 'selected-card' + (item.lowStock ? ' low-stock-card' : '');
-  cardEl.innerHTML =
-    '<div style="display:flex; gap:12px; align-items:center;">' +
-      '<div class="card-thumb" id="selectedThumb">' + thumbHtml + '</div>' +
-      '<div class="card-info">' +
-        '<div class="name">' + escapeHtml(item.name) + (item.lowStock ? ' ⚠️ 재고부족' : '') + '</div>' +
-        '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
-        '<div class="meta">현재재고: ' + item.stock + ' ' + escapeHtml(item.unit || '') + '</div>' +
-      '</div>' +
-    '</div>';
-  document.getElementById('fQty').value = '';
-  document.getElementById('fQty').max = item.stock;
-  switchView('viewForm');
-}
-
-// ---------- QR 스캔 ----------
-let qrStream = null;
-let qrScanLoopId = null;
-let qrScanning = false;
-
-function toggleQr() {
-  startLiveScan();
-}
-
-function startLiveScan() {
-  const overlay = document.getElementById('qrScanOverlay');
-  const statusEl = document.getElementById('qrScanStatus');
-  const video = document.getElementById('qrVideo');
-
-  overlay.classList.add('active');
-  statusEl.textContent = '카메라를 켜는 중...';
-  qrScanning = true;
-  qrCropRect_ = null;
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    statusEl.textContent = '이 브라우저에서는 실시간 카메라를 지원하지 않습니다. 아래 버튼으로 사진 촬영해서 인식해주세요.';
-    return;
-  }
-
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: 'environment' } },
-    audio: false
-  }).then(function (stream) {
-    qrStream = stream;
-    video.srcObject = stream;
-    video.onloadedmetadata = function () {
-      video.play();
-      statusEl.textContent = 'QR코드를 사각형 안에 맞춰주세요';
-      scanLoop_(video, statusEl);
-    };
-  }).catch(function (err) {
-    statusEl.textContent = '카메라를 사용할 수 없습니다 (' + (err.message || err.name) + '). 아래 버튼으로 사진 촬영해서 인식해주세요.';
-  });
-}
-
-let qrCropRect_ = null;
-function computeQrCropRect_(video) {
-  const wrap = document.querySelector('.qr-video-wrap');
-  const frame = document.querySelector('.qr-frame');
-  const wrapRect = wrap.getBoundingClientRect();
-  const frameRect = frame.getBoundingClientRect();
-
-  const vw = video.videoWidth, vh = video.videoHeight;
-  const scale = Math.max(wrapRect.width / vw, wrapRect.height / vh);
-  const displayedW = vw * scale;
-  const displayedH = vh * scale;
-  const offsetX = (displayedW - wrapRect.width) / 2;
-  const offsetY = (displayedH - wrapRect.height) / 2;
-
-  const frameLeftInWrap = frameRect.left - wrapRect.left;
-  const frameTopInWrap = frameRect.top - wrapRect.top;
-
-  return {
-    x: Math.round((offsetX + frameLeftInWrap) / scale),
-    y: Math.round((offsetY + frameTopInWrap) / scale),
-    size: Math.round(frameRect.width / scale)
-  };
-}
-
-function scanLoop_(video, statusEl) {
-  if (!qrScanning) return;
-
-  const vw = video.videoWidth, vh = video.videoHeight;
-
-  if (vw && vh) {
-    if (!qrCropRect_) qrCropRect_ = computeQrCropRect_(video);
-    const crop = qrCropRect_;
-
-    const OUTPUT_SIZE = 500;
-    const canvas = document.createElement('canvas');
-    canvas.width = OUTPUT_SIZE;
-    canvas.height = OUTPUT_SIZE;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, crop.x, crop.y, crop.size, crop.size, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-
-    try {
-      const imageData = ctx.getImageData(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-      let code = jsQR(imageData.data, OUTPUT_SIZE, OUTPUT_SIZE, { inversionAttempts: 'attemptBoth' });
-
-      if (!code && (scanLoop_.frameCount = (scanLoop_.frameCount || 0) + 1) % 6 === 0) {
-        const binaryData = binarizeImageData_(imageData);
-        code = jsQR(binaryData, OUTPUT_SIZE, OUTPUT_SIZE, { inversionAttempts: 'attemptBoth' });
-      }
-
-      if (code && code.data) {
-        statusEl.textContent = '인식 완료!';
-        document.getElementById('searchInput').value = code.data;
-        stopLiveScan();
-        doSearch(true);
-        return;
-      }
-    } catch (e) {}
-  }
-
-  qrScanLoopId = requestAnimationFrame(function () { scanLoop_(video, statusEl); });
-}
-
-function stopLiveScan() {
-  qrScanning = false;
-  if (qrScanLoopId) {
-    cancelAnimationFrame(qrScanLoopId);
-    qrScanLoopId = null;
-  }
-  if (qrStream) {
-    qrStream.getTracks().forEach(function (t) { t.stop(); });
-    qrStream = null;
-  }
-  document.getElementById('qrScanOverlay').classList.remove('active');
-}
-
-function switchToPhotoMode() {
-  stopLiveScan();
-  document.getElementById('qrFileInput').click();
-}
-
-function binarizeImageData_(imageData) {
-  const data = imageData.data;
-  const len = data.length;
-  const gray = new Uint8ClampedArray(len / 4);
-  const histogram = new Array(256).fill(0);
-
-  for (let i = 0, j = 0; i < len; i += 4, j++) {
-    const g = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
-    gray[j] = g;
-    histogram[g]++;
-  }
-
-  const total = gray.length;
-  let sum = 0;
-  for (let t = 0; t < 256; t++) sum += t * histogram[t];
-
-  let sumB = 0, wB = 0, maxVar = 0, threshold = 127;
-  for (let t = 0; t < 256; t++) {
-    wB += histogram[t];
-    if (wB === 0) continue;
-    const wF = total - wB;
-    if (wF === 0) break;
-    sumB += t * histogram[t];
-    const mB = sumB / wB;
-    const mF = (sum - sumB) / wF;
-    const between = wB * wF * (mB - mF) * (mB - mF);
-    if (between > maxVar) {
-      maxVar = between;
-      threshold = t;
+    function showError(err) {
+      const msg = err && err.message ? err.message : String(err);
+      alert('⚠️ ' + msg);
     }
-  }
-
-  const out = new Uint8ClampedArray(len);
-  for (let i = 0, j = 0; i < len; i += 4, j++) {
-    const v = gray[j] > threshold ? 255 : 0;
-    out[i] = out[i + 1] = out[i + 2] = v;
-    out[i + 3] = 255;
-  }
-  return out;
-}
-
-function handleQrFile(event) {
-  const file = event.target.files && event.target.files[0];
-  event.target.value = '';
-  if (!file) return;
-
-  showToast('QR코드 분석 중...');
-
-  const timeoutId = setTimeout(function () {
-    showError({ message: '분석이 오래 걸리고 있습니다. QR을 더 크고 선명하게 다시 촬영해보세요.' });
-  }, 12000);
-
-  const reader = new FileReader();
-  reader.onerror = function () {
-    clearTimeout(timeoutId);
-    showError({ message: '이미지를 불러오지 못했습니다.' });
-  };
-  reader.onload = function (evt) {
-    const img = new Image();
-    img.onerror = function () {
-      clearTimeout(timeoutId);
-      showError({ message: '이미지를 불러오지 못했습니다.' });
-    };
-    img.onload = function () {
-      setTimeout(function () {
-        try {
-          const candidateSizes = [900, 1600];
-          let code = null;
-
-          for (let i = 0; i < candidateSizes.length; i++) {
-            const MAX_SIZE = candidateSizes[i];
-            let w = img.width;
-            let h = img.height;
-            if (w > MAX_SIZE || h > MAX_SIZE) {
-              const scale = MAX_SIZE / Math.max(w, h);
-              w = Math.round(w * scale);
-              h = Math.round(h * scale);
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(img, 0, 0, w, h);
-
-            const imageData = ctx.getImageData(0, 0, w, h);
-
-            code = jsQR(imageData.data, imageData.width, imageData.height, {
-              inversionAttempts: 'attemptBoth'
-            });
-
-            if (!code || !code.data) {
-              const binaryData = binarizeImageData_(imageData);
-              code = jsQR(binaryData, imageData.width, imageData.height, {
-                inversionAttempts: 'attemptBoth'
-              });
-            }
-
-            canvas.width = 0;
-            canvas.height = 0;
-
-            if (code && code.data) break;
-            if (Math.max(img.width, img.height) <= MAX_SIZE) break;
-          }
-
-          clearTimeout(timeoutId);
-
-          if (code && code.data) {
-            document.getElementById('searchInput').value = code.data;
-            doSearch(true);
-          } else {
-            showError({ message: 'QR코드를 인식하지 못했습니다. 다시 촬영해주세요.' });
-          }
-        } catch (err) {
-          clearTimeout(timeoutId);
-          showError({ message: '분석 중 오류가 발생했습니다: ' + err.message });
-        }
-      }, 50);
-    };
-    img.src = evt.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-// ---------- 자재 사진 업로드 ----------
-function triggerPhotoUpload() {
-  if (!selectedMaterial) {
-    showError({ message: '자재를 먼저 선택해주세요.' });
-    return;
-  }
-  document.getElementById('photoFileInput').click();
-}
-
-function handlePhotoFile(event) {
-  const file = event.target.files && event.target.files[0];
-  event.target.value = '';
-  if (!file || !selectedMaterial) return;
-
-  const btn = document.getElementById('photoUploadBtn');
-  btn.disabled = true;
-  showToast('사진 업로드 중...');
-
-  const reader = new FileReader();
-  reader.onerror = function () {
-    btn.disabled = false;
-    showError({ message: '이미지를 불러오지 못했습니다.' });
-  };
-  reader.onload = function (evt) {
-    const fullDataUrl = evt.target.result;
-    const commaIdx = fullDataUrl.indexOf(',');
-    const base64Only = commaIdx !== -1 ? fullDataUrl.substring(commaIdx + 1) : fullDataUrl;
-    const mimeType = file.type || 'image/jpeg';
-
-    apiPost('uploadPhoto', {
-      code: selectedMaterial.code,
-      base64Data: base64Only,
-      mimeType: mimeType,
-      fileName: selectedMaterial.code + '.jpg'
-    })
-      .then(function (res) {
-        btn.disabled = false;
-        if (res && res.success) {
-          selectedMaterial.photo = res.url;
-          const selectedThumb = document.getElementById('selectedThumb');
-          if (selectedThumb) {
-            selectedThumb.innerHTML = '<img src="' + res.url + '" alt="' + escapeHtml(selectedMaterial.name) +
-              '" onerror="this.parentElement.innerHTML=\'📦\'">';
-          }
-          showToast(res.message || '사진이 등록되었습니다.');
-        } else {
-          showError(res || { message: '사진 등록에 실패했습니다.' });
-        }
-      })
-      .catch(function (err) {
-        btn.disabled = false;
-        showError(err);
-      });
-  };
-  reader.readAsDataURL(file);
-}
-
-// ---------- 불출 등록 ----------
-function submitForm() {
-  const project = document.getElementById('fProject').value;
-  const ship = document.getElementById('fShip').value.trim();
-  const qty = Number(document.getElementById('fQty').value);
-  const user = document.getElementById('fUser').value;
-  const note = document.getElementById('fNote').value.trim();
-
-  if (!selectedMaterial) return showError({ message: '자재를 먼저 선택해주세요.' });
-  if (!project) return showError({ message: '프로젝트명을 선택해주세요.' });
-  if (!ship) return showError({ message: '호선명을 입력해주세요.' });
-  if (!qty || qty <= 0) return showError({ message: '사용수량을 입력해주세요.' });
-  if (!user) return showError({ message: '사용자를 선택해주세요.' });
-
-  const submitBtn = document.getElementById('submitBtn');
-  submitBtn.disabled = true;
-  showToast('불출 등록 중...');
-
-  apiPost('submitDispatch', {
-    code: selectedMaterial.code,
-    name: selectedMaterial.name,
-    spec: selectedMaterial.spec,
-    unit: selectedMaterial.unit,
-    qty: qty,
-    project: project,
-    ship: ship,
-    user: user,
-    note: note
-  })
-    .then(function (res) {
-      submitBtn.disabled = false;
-      if (res && res.success) {
-        showToast(res.message || '불출이 등록되었습니다.');
-        document.getElementById('searchInput').value = '';
-        document.getElementById('searchResults').innerHTML = '';
-        selectedMaterial = null;
-        backToSearch();
-        loadLowStockPanel();
-      } else {
-        showError(res || { message: '불출 등록에 실패했습니다.' });
-      }
-    })
-    .catch(function (err) {
-      submitBtn.disabled = false;
-      showError(err);
-    });
-}
-
-// ---------- 이전기록 ----------
-function loadHistory() {
-  const p = document.getElementById('histProject').value;
-  const s = document.getElementById('histShip').value.trim();
-  const k = document.getElementById('histKeyword').value.trim();
-  const el = document.getElementById('historyList');
-  el.innerHTML = '<div class="spinner">기록 불러오는 중...</div>';
-
-  apiPost('history', { project: p, ship: s, keyword: k })
-    .then(function (list) {
-      if (!list || !list.length) {
-        el.innerHTML = '<div class="empty">이전 불출 기록이 없습니다.</div>';
-        return;
-      }
-      el.innerHTML = '';
-      list.forEach(function (h) {
-        const div = document.createElement('div');
-        div.className = 'hist-item';
-        div.innerHTML =
-          '<div class="top-row"><span>' + escapeHtml(h.name) + ' (' + escapeHtml(h.code) + ')</span><span>' + h.qty + ' ' + escapeHtml(h.unit || '') + '</span></div>' +
-          '<div class="sub">프로젝트: ' + escapeHtml(h.project) + ' · 호선: ' + escapeHtml(h.ship) + '</div>' +
-          '<div class="sub">불출자: ' + escapeHtml(h.user) + ' · 일시: ' + escapeHtml(h.datetime) + '</div>' +
-          (h.note ? '<div class="sub" style="margin-top:4px; color:#1e293b;">비고: ' + escapeHtml(h.note) + '</div>' : '');
-        el.appendChild(div);
-      });
-    })
-    .catch(function (err) {
-      el.innerHTML = '<div class="empty" style="color:var(--danger);">' + escapeHtml((err && err.message) || '조회 중 오류가 발생했습니다.') + '</div>';
-      showError(err);
-    });
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.className = 'toast';
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(function () { t.style.display = 'none'; }, 3000);
-}
-
-function showError(err) {
-  const t = document.getElementById('toast');
-  t.className = 'toast error';
-  t.textContent = (err && err.message) || '오류가 발생했습니다.';
-  t.style.display = 'block';
-  setTimeout(function () { t.style.display = 'none'; }, 4000);
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-</script>
+  </script>
 </body>
 </html>
