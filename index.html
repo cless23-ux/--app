@@ -428,7 +428,7 @@
   <div id="viewSearch" class="view active">
     <div class="search-box-wrapper">
       <div class="search-box">
-        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter')doSearch(true)">
+        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter'){event.preventDefault();doSearch(true);}">
         <button class="btn-search" onclick="doSearch(true)">검색</button>
       </div>
     </div>
@@ -438,7 +438,7 @@
     <!-- 검색 결과 목록 -->
     <div id="searchResults"></div>
 
-    <!-- 재고 부족 알림 패널 (검색목록 아래로 이동) -->
+    <!-- 재고 부족 알림 패널 -->
     <div id="lowStockPanel" class="lowstock-panel">
       <div class="lowstock-header">
         ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
@@ -501,11 +501,11 @@
     <div class="filter-row">
       <select id="histProject" onchange="loadHistory()"><option value="">전체 프로젝트</option></select>
       <input id="histShip" type="text" list="histShipList" placeholder="호선명 입력 또는 선택" autocomplete="off"
-             onchange="loadHistory()" onkeyup="if(event.key==='Enter')loadHistory()">
+             onchange="loadHistory()" onkeyup="if(event.key==='Enter'){event.preventDefault();loadHistory();}">
       <datalist id="histShipList"></datalist>
     </div>
     <div class="search-box">
-      <input id="histKeyword" type="text" placeholder="자재명/코드 검색" onkeyup="if(event.key==='Enter')loadHistory()">
+      <input id="histKeyword" type="text" placeholder="자재명/코드 검색" onkeyup="if(event.key==='Enter'){event.preventDefault();loadHistory();}">
       <button class="icon-btn" onclick="loadHistory()">🔍</button>
     </div>
     <div id="historyList"></div>
@@ -526,11 +526,12 @@ let searchDebounceTimer = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('./service-worker.js').catch(function (err) {
-      console.warn('서비스워커 등록 실패:', err);
+      console.warn('서비스워커 등록 생략 또는 실패:', err);
     });
   });
 }
 
+// Google Apps Script 통신용 (CORS 및 리다이렉트 우회)
 function apiPost(action, payload) {
   return new Promise(function (resolve, reject) {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('YOUR_APPS_SCRIPT') !== -1) {
@@ -542,10 +543,14 @@ function apiPost(action, payload) {
       reject({ message: '서버 응답이 없습니다 (타임아웃).' });
     }, 15000);
 
+    const postData = new URLSearchParams();
+    postData.append('request', JSON.stringify({ action: action, payload: payload }));
+
     fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: action, payload: payload })
+      mode: 'cors',
+      redirect: 'follow',
+      body: postData
     })
       .then(function (r) {
         clearTimeout(timeoutId);
@@ -560,7 +565,7 @@ function apiPost(action, payload) {
       })
       .catch(function (err) {
         clearTimeout(timeoutId);
-        reject({ message: '네트워크 오류 또는 CORS 차단: ' + err.message });
+        reject({ message: '네트워크 오류 또는 통신 실패: ' + err.message });
       });
   });
 }
@@ -572,12 +577,14 @@ window.onload = function () {
   history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
 
   apiPost('masterLists', {}).then(function (lists) {
-    masterLists = lists;
-    fillSelect('fProject', lists.projects, '프로젝트 선택');
-    fillDatalist('shipList', lists.ships);
-    fillSelect('fUser', lists.users, '사용자 선택');
-    fillSelect('histProject', lists.projects, '전체 프로젝트', true);
-    fillDatalist('histShipList', lists.ships);
+    if (lists) {
+      masterLists = lists;
+      fillSelect('fProject', lists.projects || [], '프로젝트 선택');
+      fillDatalist('shipList', lists.ships || []);
+      fillSelect('fUser', lists.users || [], '사용자 선택');
+      fillSelect('histProject', lists.projects || [], '전체 프로젝트', true);
+      fillDatalist('histShipList', lists.ships || []);
+    }
   }).catch(showError);
 
   loadLowStockPanel();
@@ -656,6 +663,7 @@ function toggleLowStockExpand() {
 
 function fillSelect(id, arr, placeholder, keepFirst) {
   const el = document.getElementById(id);
+  if (!el) return;
   if (!keepFirst) el.innerHTML = '<option value="">' + placeholder + '</option>';
   arr.forEach(function (v) {
     const opt = document.createElement('option');
@@ -666,6 +674,7 @@ function fillSelect(id, arr, placeholder, keepFirst) {
 
 function fillDatalist(id, arr) {
   const el = document.getElementById(id);
+  if (!el) return;
   el.innerHTML = '';
   arr.forEach(function (v) {
     const opt = document.createElement('option');
@@ -693,7 +702,6 @@ function showHistory() {
   loadHistory();
 }
 
-// 텍스트 입력 시 실시간 검색 (사진 제외하여 속도 향상)
 function handleSearchInput(kw) {
   clearTimeout(searchDebounceTimer);
   kw = kw.trim();
@@ -702,11 +710,10 @@ function handleSearchInput(kw) {
     return;
   }
   searchDebounceTimer = setTimeout(function () {
-    doSearch(false); // showPhoto = false
+    doSearch(false);
   }, 200);
 }
 
-// ---------- 검색 (showPhoto: true면 사진 포함, false면 사진 제외 빠른 텍스트 출력) ----------
 function doSearch(showPhoto = true) {
   const kw = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
@@ -715,7 +722,7 @@ function doSearch(showPhoto = true) {
 
   apiPost('search', { keyword: kw })
     .then(function (items) {
-      if (!items.length) {
+      if (!items || !items.length) {
         resultsEl.innerHTML = '<div class="empty">검색 결과가 없습니다.</div>';
         return;
       }
@@ -1130,7 +1137,7 @@ function loadHistory() {
 
   apiPost('history', { project: p, ship: s, keyword: k })
     .then(function (list) {
-      if (!list.length) {
+      if (!list || !list.length) {
         el.innerHTML = '<div class="empty">이전 불출 기록이 없습니다.</div>';
         return;
       }
