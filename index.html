@@ -211,6 +211,7 @@
       border: 1px solid #fed7aa;
       border-radius: 12px;
       padding: 12px 14px;
+      margin-top: 14px;
       margin-bottom: 14px;
       display: none;
     }
@@ -427,14 +428,17 @@
   <div id="viewSearch" class="view active">
     <div class="search-box-wrapper">
       <div class="search-box">
-        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter')doSearch()">
-        <button class="btn-search" onclick="doSearch()">검색</button>
+        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter')doSearch(true)">
+        <button class="btn-search" onclick="doSearch(true)">검색</button>
       </div>
     </div>
 
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
 
-    <!-- 저재고 알림 패널 -->
+    <!-- 검색 결과 목록 -->
+    <div id="searchResults"></div>
+
+    <!-- 재고 부족 알림 패널 (검색목록 아래로 이동) -->
     <div id="lowStockPanel" class="lowstock-panel">
       <div class="lowstock-header">
         ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
@@ -442,8 +446,6 @@
       <div class="lowstock-list" id="lowStockList"></div>
       <button class="lowstock-toggle" id="lowStockToggleBtn" onclick="toggleLowStockExpand()" style="display:none;"></button>
     </div>
-
-    <div id="searchResults"></div>
   </div>
 
   <!-- ================= 실시간 QR 스캔 오버레이 ================= -->
@@ -634,7 +636,7 @@ function renderLowStockPanel() {
       '<span class="li-stock">' + item.stock + '/' + item.inQty + ' ' + escapeHtml(item.unit || '') + ' (' + item.ratio + '%)</span>';
     div.onclick = function () {
       document.getElementById('searchInput').value = item.code;
-      doSearch();
+      doSearch(true);
     };
     listEl.appendChild(div);
   });
@@ -691,7 +693,7 @@ function showHistory() {
   loadHistory();
 }
 
-// 텍스트 입력 시 실시간으로 카드형 결과가 변경되도록 자동 검색 연동
+// 텍스트 입력 시 실시간 검색 (사진 제외하여 속도 향상)
 function handleSearchInput(kw) {
   clearTimeout(searchDebounceTimer);
   kw = kw.trim();
@@ -700,12 +702,12 @@ function handleSearchInput(kw) {
     return;
   }
   searchDebounceTimer = setTimeout(function () {
-    doSearch();
-  }, 250);
+    doSearch(false); // showPhoto = false
+  }, 200);
 }
 
-// ---------- 검색 ----------
-function doSearch() {
+// ---------- 검색 (showPhoto: true면 사진 포함, false면 사진 제외 빠른 텍스트 출력) ----------
+function doSearch(showPhoto = true) {
   const kw = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
   if (!kw) { resultsEl.innerHTML = ''; return; }
@@ -721,11 +723,16 @@ function doSearch() {
       items.forEach(function (item) {
         const div = document.createElement('div');
         div.className = 'card' + (item.lowStock ? ' low-stock-card' : '');
-        const thumbHtml = item.photo
-          ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">'
-          : '📦';
+        
+        let thumbHtml = '';
+        if (showPhoto) {
+          thumbHtml = '<div class="card-thumb">' + 
+            (item.photo ? '<img src="' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.name) + '" onerror="this.parentElement.innerHTML=\'📦\'">' : '📦') +
+            '</div>';
+        }
+
         div.innerHTML =
-          '<div class="card-thumb">' + thumbHtml + '</div>' +
+          thumbHtml +
           '<div class="card-info">' +
             '<div class="name">' + escapeHtml(item.name) + (item.lowStock ? ' ⚠️' : '') + '</div>' +
             '<div class="meta">코드: ' + escapeHtml(item.code) + ' · 규격: ' + escapeHtml(item.spec || '-') + '</div>' +
@@ -856,7 +863,7 @@ function scanLoop_(video, statusEl) {
         statusEl.textContent = '인식 완료!';
         document.getElementById('searchInput').value = code.data;
         stopLiveScan();
-        doSearch();
+        doSearch(true);
         return;
       }
     } catch (e) {}
@@ -993,7 +1000,7 @@ function handleQrFile(event) {
 
           if (code && code.data) {
             document.getElementById('searchInput').value = code.data;
-            doSearch();
+            doSearch(true);
           } else {
             showError({ message: 'QR코드를 인식하지 못했습니다. 다시 촬영해주세요.' });
           }
