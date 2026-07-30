@@ -74,8 +74,9 @@
       margin-bottom: 4px;
     }
     .hero .hero-desc {
-      font-size: 12px;
-      opacity: 0.9;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.95;
     }
     .hero .hist-btn {
       position: absolute;
@@ -91,10 +92,37 @@
       cursor: pointer;
     }
 
+    /* 2번 요청 반영: 배너 오른쪽 맨 아래 QR 스캔 버튼 */
+    .hero .hero-qr-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .view { display: none; padding: 16px; }
     .view.active { display: block; }
 
-    .search-box { display: flex; gap: 8px; margin-bottom: 8px; }
+    /* 2번 요청 반영: 검색창 + 검색 버튼 가로 배치 구조 */
+    .search-box-wrapper {
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .search-box { 
+      display: flex; 
+      gap: 8px; 
+    }
     input, select, textarea {
       width: 100%;
       padding: 12px;
@@ -104,6 +132,50 @@
       background: #fff;
     }
     .search-box input { flex: 1; }
+    
+    .btn-search {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 4번 요청 반영: 검색어 일치 자재명 추천 목록 (드롭다운) */
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 150;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      margin-top: 4px;
+      display: none;
+    }
+    .autocomplete-list.active { display: block; }
+    .autocomplete-item {
+      padding: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:active { background: #f8fafc; }
+    .autocomplete-item .item-name { font-weight: 700; color: var(--text); }
+    .autocomplete-item .item-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+
     .icon-btn {
       background: var(--primary);
       color: #fff;
@@ -278,7 +350,7 @@
       padding: 12px 20px;
       border-radius: 10px;
       font-size: 14px;
-      z-index: 100;
+      z-index: 300;
       display: none;
     }
     .toast.error { background: var(--danger); }
@@ -369,24 +441,36 @@
     <button class="hist-btn" onclick="showHistory()">이전기록</button>
     <div class="hero-sub">Upright Green Energy Partner</div>
     <div class="hero-title">📦 자재 관리마스터</div>
-    <div class="hero-desc">세상을 움직이는 기술과 신뢰로 자재를 관리합니다</div>
+    
+    <!-- 3번 요청 반영: "선박생산부" 문구로 변경 -->
+    <div class="hero-desc">선박생산부</div>
+
+    <!-- 2번 요청 반영: 파란색 배경 오른쪽 맨 아래 QR 스캔 버튼 배치 -->
+    <button class="hero-qr-btn" onclick="toggleQr()" aria-label="QR 스캔">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/>
+        <path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/>
+        <path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/>
+        <path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/>
+        <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" fill="currentColor" stroke="none"/>
+      </svg>
+      QR 스캔
+    </button>
   </div>
 
   <!-- ================= 검색 화면 ================= -->
   <div id="viewSearch" class="view active">
-    <div class="search-box">
-      <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" onkeyup="if(event.key==='Enter')doSearch()">
-      <button class="icon-btn" id="qrScanBtn" onclick="toggleQr()" aria-label="QR 스캔" title="QR 스캔">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/>
-          <path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/>
-          <path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/>
-          <path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/>
-          <rect x="9.5" y="9.5" width="5" height="5" rx="0.5" fill="currentColor" stroke="none"/>
-        </svg>
-      </button>
+    <!-- 2번 요청 반영: 검색창 및 옆으로 배치된 검색 버튼 -->
+    <div class="search-box-wrapper">
+      <div class="search-box">
+        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter')doSearch()">
+        <button class="btn-search" onclick="doSearch()">검색</button>
+      </div>
+
+      <!-- 4번 요청 반영: 자재명 추천 목록 창 -->
+      <div id="autocompleteList" class="autocomplete-list"></div>
     </div>
-    <button class="btn-secondary" onclick="doSearch()">검색</button>
+
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
 
     <!-- 저재고 알림 패널 (재고 30% 미만 자재) -->
@@ -469,14 +553,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ⚠️ Apps Script 배포 후 나온 웹앱 URL(.../exec)로 반드시 교체하세요.
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3ZulI8v1ozzvhV8IEfWnGHvsMCy5aFltJg2GoyMep0xbabyk-bP2ltg0Ri2kXuBCj/exec';
 
 let selectedMaterial = null;
 let masterLists = null;
 let currentView = 'viewSearch';
+let lastSearchResults = []; // 실시간 추천용 캐시 데이터
 
-// ---------- 서비스워커 등록 (PWA 설치 가능하게 하는 필수 조건) ----------
+// ---------- 서비스워커 등록 ----------
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('./service-worker.js').catch(function (err) {
@@ -486,19 +570,15 @@ if ('serviceWorker' in navigator) {
 }
 
 // ---------- Apps Script API 호출 레이어 ----------
-// ⚠️ 조회(검색/목록/이력)와 쓰기(등록/업로드) 모두 POST 하나로 통일.
-// Apps Script는 GET 방식 JSON 응답 시 내부적으로 다른 도메인으로 리다이렉트되면서
-// CORS 허용 헤더가 빠지는 문제가 있어, GET은 외부 호스팅 화면에서 항상 차단됨.
-// POST + text/plain 방식은 브라우저의 사전요청(preflight) 자체를 안 거치므로 이 문제를 피할 수 있음.
 function apiPost(action, payload) {
   return new Promise(function (resolve, reject) {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('YOUR_APPS_SCRIPT') !== -1) {
-      reject({ message: 'APPS_SCRIPT_URL이 설정되지 않았습니다. index.html 상단의 APPS_SCRIPT_URL 값을 실제 배포 주소로 교체해주세요.' });
+      reject({ message: 'APPS_SCRIPT_URL이 설정되지 않았습니다.' });
       return;
     }
 
     const timeoutId = setTimeout(function () {
-      reject({ message: '서버 응답이 없습니다 (타임아웃). Apps Script 배포 상태와 액세스 권한(모든 사용자)을 확인해주세요.' });
+      reject({ message: '서버 응답이 없습니다 (타임아웃).' });
     }, 15000);
 
     fetch(APPS_SCRIPT_URL, {
@@ -524,8 +604,13 @@ function apiPost(action, payload) {
   });
 }
 
+// 1번 요청 반영: 뒤로가기 2번 눌러서 앱 종료 처리 로직
+let lastBackPressedTime = 0;
+
 window.onload = function () {
-  history.replaceState({ view: 'viewSearch' }, null, location.href);
+  // 뒤로가기 제어를 위해 초기 History 상태 저장
+  history.replaceState({ view: 'viewSearch', depth: 1 }, null, location.href);
+  history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
 
   apiPost('masterLists', {}).then(function (lists) {
     masterLists = lists;
@@ -537,6 +622,32 @@ window.onload = function () {
   }).catch(showError);
 
   loadLowStockPanel();
+
+  // 검색창 바깥 클릭 시 추천목록 닫기
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.search-box-wrapper')) {
+      hideAutocomplete();
+    }
+  });
+};
+
+window.onpopstate = function (event) {
+  if (currentView !== 'viewSearch') {
+    // 메인 화면이 아닐 때는 검색 화면으로 돌아감
+    switchView('viewSearch', false);
+    history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
+  } else {
+    // 1번 요청 반영: 메인 검색 화면에서 뒤로가기 눌렀을 때 2번 연달아 눌러 종료 처리
+    const currentTime = new Date().getTime();
+    if (currentTime - lastBackPressedTime < 2000) {
+      // 2초 이내 다시 누름 -> 앱/페이지 이탈 진행
+      history.back();
+    } else {
+      lastBackPressedTime = currentTime;
+      showToast('한 번 더 누르면 종료됩니다.');
+      history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
+    }
+  }
 };
 
 // ---------- 저재고 알림 패널 ----------
@@ -550,7 +661,7 @@ function loadLowStockPanel() {
       lowStockItems = items || [];
       renderLowStockPanel();
     })
-    .catch(function () { /* 알림 패널은 조용히 실패 처리 (검색은 계속 가능해야 함) */ });
+    .catch(function () {});
 }
 
 function renderLowStockPanel() {
@@ -595,15 +706,6 @@ function toggleLowStockExpand() {
   renderLowStockPanel();
 }
 
-window.onpopstate = function (event) {
-  if (event.state && event.state.view) {
-    switchView(event.state.view, false);
-  } else {
-    switchView('viewSearch', false);
-    history.pushState({ view: 'viewSearch' }, null, location.href);
-  }
-};
-
 function fillSelect(id, arr, placeholder, keepFirst) {
   const el = document.getElementById(id);
   if (!keepFirst) el.innerHTML = '<option value="">' + placeholder + '</option>';
@@ -628,15 +730,13 @@ function switchView(id, pushHistoryFlag = true) {
   currentView = id;
   document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
-  if (pushHistoryFlag) {
-    history.pushState({ view: id }, null, location.href);
-  }
+  hideAutocomplete();
 }
 
 function backToSearch() {
   stopLiveScan();
   if (currentView !== 'viewSearch') {
-    history.back();
+    switchView('viewSearch');
   }
 }
 
@@ -646,8 +746,65 @@ function showHistory() {
   loadHistory();
 }
 
+// ---------- 4번 요청 반영: 실시간 추천 자재 목록 (드롭다운) ----------
+let searchDebounceTimer = null;
+
+function handleSearchInput(kw) {
+  kw = kw.trim();
+  if (!kw) {
+    hideAutocomplete();
+    return;
+  }
+
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(function () {
+    apiPost('search', { keyword: kw })
+      .then(function (items) {
+        lastSearchResults = items || [];
+        renderAutocomplete(items);
+      })
+      .catch(function () {
+        hideAutocomplete();
+      });
+  }, 250);
+}
+
+function renderAutocomplete(items) {
+  const autoEl = document.getElementById('autocompleteList');
+  if (!items || items.length === 0) {
+    autoEl.innerHTML = '';
+    autoEl.classList.remove('active');
+    return;
+  }
+
+  autoEl.innerHTML = '';
+  items.slice(0, 6).forEach(function (item) { // 최대 6개 노출
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    div.innerHTML = 
+      '<div class="item-name">' + escapeHtml(item.name) + '</div>' +
+      '<div class="item-sub">코드: ' + escapeHtml(item.code) + ' | 재고: ' + item.stock + ' ' + escapeHtml(item.unit || '') + '</div>';
+    
+    div.onclick = function () {
+      document.getElementById('searchInput').value = item.name;
+      hideAutocomplete();
+      selectMaterial(item);
+    };
+    autoEl.appendChild(div);
+  });
+  autoEl.classList.add('active');
+}
+
+function hideAutocomplete() {
+  const autoEl = document.getElementById('autocompleteList');
+  if (autoEl) {
+    autoEl.classList.remove('active');
+  }
+}
+
 // ---------- 검색 ----------
 function doSearch() {
+  hideAutocomplete();
   const kw = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
   if (!kw) { resultsEl.innerHTML = ''; return; }
@@ -722,7 +879,7 @@ function startLiveScan() {
   overlay.classList.add('active');
   statusEl.textContent = '카메라를 켜는 중...';
   qrScanning = true;
-  qrCropRect_ = null; // 새 스캔 시작 시 크롭 영역 재계산되도록 초기화
+  qrCropRect_ = null;
 
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     statusEl.textContent = '이 브라우저에서는 실시간 카메라를 지원하지 않습니다. 아래 버튼으로 사진 촬영해서 인식해주세요.';
@@ -745,8 +902,6 @@ function startLiveScan() {
   });
 }
 
-// 화면에 표시되는 안내 사각형(.qr-frame) 위치를, 실제 영상의 원본 좌표로 변환.
-// object-fit: cover 방식이라 화면에 보이는 크기와 실제 영상 해상도가 다르므로 좌표 변환이 필요함.
 let qrCropRect_ = null;
 function computeQrCropRect_(video) {
   const wrap = document.querySelector('.qr-video-wrap');
@@ -755,14 +910,12 @@ function computeQrCropRect_(video) {
   const frameRect = frame.getBoundingClientRect();
 
   const vw = video.videoWidth, vh = video.videoHeight;
-  // object-fit: cover 배율 (컨테이너를 꽉 채우기 위해 더 큰 쪽 배율 사용)
   const scale = Math.max(wrapRect.width / vw, wrapRect.height / vh);
   const displayedW = vw * scale;
   const displayedH = vh * scale;
   const offsetX = (displayedW - wrapRect.width) / 2;
   const offsetY = (displayedH - wrapRect.height) / 2;
 
-  // 안내 사각형의 컨테이너 기준 상대 위치
   const frameLeftInWrap = frameRect.left - wrapRect.left;
   const frameTopInWrap = frameRect.top - wrapRect.top;
 
@@ -773,8 +926,6 @@ function computeQrCropRect_(video) {
   };
 }
 
-// 매 프레임 캡처 → jsQR 인식 시도 (일정 주기로는 이진화 버전도 시도)
-// 화면 안내 사각형 안쪽만 잘라서 스캔하므로, 주변에 보이는 다른 QR은 무시됨.
 function scanLoop_(video, statusEl) {
   if (!qrScanning) return;
 
@@ -784,7 +935,6 @@ function scanLoop_(video, statusEl) {
     if (!qrCropRect_) qrCropRect_ = computeQrCropRect_(video);
     const crop = qrCropRect_;
 
-    // 잘라낸 영역을 넉넉한 해상도로 확대해서 인식률 확보
     const OUTPUT_SIZE = 500;
     const canvas = document.createElement('canvas');
     canvas.width = OUTPUT_SIZE;
@@ -796,7 +946,6 @@ function scanLoop_(video, statusEl) {
       const imageData = ctx.getImageData(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
       let code = jsQR(imageData.data, OUTPUT_SIZE, OUTPUT_SIZE, { inversionAttempts: 'attemptBoth' });
 
-      // 매 프레임 이진화까지 하면 무거우니, 약 6프레임에 한 번만 보조로 시도
       if (!code && (scanLoop_.frameCount = (scanLoop_.frameCount || 0) + 1) % 6 === 0) {
         const binaryData = binarizeImageData_(imageData);
         code = jsQR(binaryData, OUTPUT_SIZE, OUTPUT_SIZE, { inversionAttempts: 'attemptBoth' });
@@ -809,9 +958,7 @@ function scanLoop_(video, statusEl) {
         doSearch();
         return;
       }
-    } catch (e) {
-      // 프레임 처리 중 일시적 오류는 무시하고 다음 프레임 계속 시도
-    }
+    } catch (e) {}
   }
 
   qrScanLoopId = requestAnimationFrame(function () { scanLoop_(video, statusEl); });
@@ -835,9 +982,6 @@ function switchToPhotoMode() {
   document.getElementById('qrFileInput').click();
 }
 
-// ---------- QR 인식률 개선용: 흑백 이진화(Otsu 자동 임계값) ----------
-// 사진의 밝기 분포를 분석해 가장 적절한 흑/백 기준값을 자동으로 찾아
-// 흐릿하거나 조명이 고르지 않은 QR 사진도 뚜렷한 흑백으로 변환해줌.
 function binarizeImageData_(imageData) {
   const data = imageData.data;
   const len = data.length;
@@ -845,13 +989,11 @@ function binarizeImageData_(imageData) {
   const histogram = new Array(256).fill(0);
 
   for (let i = 0, j = 0; i < len; i += 4, j++) {
-    // 표준 그레이스케일 변환(사람 눈의 밝기 인지 가중치 반영)
     const g = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) | 0;
     gray[j] = g;
     histogram[g]++;
   }
 
-  // Otsu's method: 두 그룹(흑/백) 간 분산이 최대가 되는 임계값 탐색
   const total = gray.length;
   let sum = 0;
   for (let t = 0; t < 256; t++) sum += t * histogram[t];
@@ -904,11 +1046,8 @@ function handleQrFile(event) {
       showError({ message: '이미지를 불러오지 못했습니다.' });
     };
     img.onload = function () {
-      // 토스트("분석 중...")가 화면에 실제로 그려질 시간을 준 뒤 무거운 연산 시작.
-      // (안 그러면 브라우저가 연산으로 바로 멈춰버려서 "분석 중" 문구조차 안 보일 수 있음)
       setTimeout(function () {
         try {
-          // 해상도 단계를 2단계로 줄여 처리량을 크게 낮춤 (기존 3단계는 저사양 폰에서 화면이 멈추는 원인이 됨)
           const candidateSizes = [900, 1600];
           let code = null;
 
@@ -931,13 +1070,10 @@ function handleQrFile(event) {
 
             const imageData = ctx.getImageData(0, 0, w, h);
 
-            // 1차 시도: 원본 그대로
             code = jsQR(imageData.data, imageData.width, imageData.height, {
               inversionAttempts: 'attemptBoth'
             });
 
-            // 2차 시도: 실패 시 흑백을 뚜렷하게 만든(이진화) 버전으로 재시도.
-            // 흐릿하거나 조명이 고르지 않은 사진에서 인식률을 크게 높여줌.
             if (!code || !code.data) {
               const binaryData = binarizeImageData_(imageData);
               code = jsQR(binaryData, imageData.width, imageData.height, {
@@ -945,7 +1081,6 @@ function handleQrFile(event) {
               });
             }
 
-            // 다음 시도 전 캔버스 메모리 정리
             canvas.width = 0;
             canvas.height = 0;
 
@@ -959,7 +1094,7 @@ function handleQrFile(event) {
             document.getElementById('searchInput').value = code.data;
             doSearch();
           } else {
-            showError({ message: 'QR코드를 인식하지 못했습니다. 화면 전체에 QR코드가 꽉 차게, 흔들리지 않도록 다시 촬영해주세요.' });
+            showError({ message: 'QR코드를 인식하지 못했습니다. 다시 촬영해주세요.' });
           }
         } catch (err) {
           clearTimeout(timeoutId);
@@ -996,8 +1131,6 @@ function handlePhotoFile(event) {
     showError({ message: '이미지를 불러오지 못했습니다.' });
   };
   reader.onload = function (evt) {
-    // evt.target.result 형태: "data:image/jpeg;base64,AAAA..."
-    // 서버(Utilities.base64Decode)는 'data:...;base64,' 접두어가 없는 순수 base64 문자열을 기대하므로 분리해서 전달
     const fullDataUrl = evt.target.result;
     const commaIdx = fullDataUrl.indexOf(',');
     const base64Only = commaIdx !== -1 ? fullDataUrl.substring(commaIdx + 1) : fullDataUrl;
@@ -1068,7 +1201,7 @@ function submitForm() {
         document.getElementById('searchResults').innerHTML = '';
         selectedMaterial = null;
         backToSearch();
-        loadLowStockPanel(); // 불출 후 재고가 바뀌었을 수 있으므로 알림 패널 갱신
+        loadLowStockPanel();
       } else {
         showError(res || { message: '불출 등록에 실패했습니다.' });
       }
