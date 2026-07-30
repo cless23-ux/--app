@@ -428,17 +428,19 @@
   <div id="viewSearch" class="view active">
     <div class="search-box-wrapper">
       <div class="search-box">
-        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter'){event.preventDefault();doSearch(true);}">
+        <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" 
+               oninput="handleRealtimeSearch(this.value)" 
+               onkeyup="if(event.key==='Enter'){event.preventDefault();doSearch(true);}">
         <button class="btn-search" onclick="doSearch(true)">검색</button>
       </div>
     </div>
 
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
 
-    <!-- 검색 결과 목록 -->
+    <!-- 검색 결과 목록 (재고부족창 위로 배치) -->
     <div id="searchResults"></div>
 
-    <!-- 재고 부족 알림 패널 -->
+    <!-- 재고 부족 알림 패널 (검색목록 아래로 이동) -->
     <div id="lowStockPanel" class="lowstock-panel">
       <div class="lowstock-header">
         ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
@@ -517,7 +519,7 @@
 
 <script>
 // ⚠️ 본인의 Google Apps Script 배포 URL 주소를 넣어주세요.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz91LlNEZBaXzusgwIeEK0BN068KrlFHWEAA07RyXK4cVrul4Dm1xoHajiKxB7U1YVz/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3N0LN0ggQ3010clHpPkE-VvUMkjWlmSJUcfecuKmDijEqNFw-6qzkRKy3EGczHSvU/exec';
 
 let selectedMaterial = null;
 let masterLists = null;
@@ -544,7 +546,6 @@ function apiPost(action, payload) {
       reject({ message: '서버 응답 시간이 초과되었습니다.' });
     }, 15000);
 
-    // GAS 백엔드의 e.postData.contents 파싱 방식과 100% 호환되는 payload 전송
     const bodyData = JSON.stringify({ action: action, payload: payload });
 
     fetch(APPS_SCRIPT_URL, {
@@ -704,7 +705,8 @@ function showHistory() {
   loadHistory();
 }
 
-function handleSearchInput(kw) {
+// 실시간 입력 처리 (속도를 위해 이미지 없이 텍스트 카드만 빠르게 출력)
+function handleRealtimeSearch(kw) {
   clearTimeout(searchDebounceTimer);
   kw = kw.trim();
   if (!kw) {
@@ -713,14 +715,23 @@ function handleSearchInput(kw) {
   }
   searchDebounceTimer = setTimeout(function () {
     doSearch(false);
-  }, 200);
+  }, 150);
 }
 
+// 검색 실행 함수 (showPhoto: true=이미지 포함, false=텍스트만)
 function doSearch(showPhoto = true) {
+  clearTimeout(searchDebounceTimer);
+  
   const kw = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
-  if (!kw) { resultsEl.innerHTML = ''; return; }
-  resultsEl.innerHTML = '<div class="spinner">검색 중...</div>';
+  if (!kw) { 
+    resultsEl.innerHTML = ''; 
+    return; 
+  }
+
+  if (showPhoto) {
+    resultsEl.innerHTML = '<div class="spinner">검색 중...</div>';
+  }
 
   apiPost('search', { keyword: kw })
     .then(function (items) {
@@ -733,6 +744,7 @@ function doSearch(showPhoto = true) {
         const div = document.createElement('div');
         div.className = 'card' + (item.lowStock ? ' low-stock-card' : '');
         
+        // showPhoto가 true일 때만 이미지 영역 생성
         let thumbHtml = '';
         if (showPhoto) {
           thumbHtml = '<div class="card-thumb">' + 
