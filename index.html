@@ -92,7 +92,6 @@
       cursor: pointer;
     }
 
-    /* 2번 요청 반영: 배너 오른쪽 맨 아래 QR 스캔 버튼 */
     .hero .hero-qr-btn {
       position: absolute;
       bottom: 16px;
@@ -114,10 +113,9 @@
     .view { display: none; padding: 16px; }
     .view.active { display: block; }
 
-    /* 2번 요청 반영: 검색창 + 검색 버튼 가로 배치 구조 */
     .search-box-wrapper {
       position: relative;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
     .search-box { 
       display: flex; 
@@ -147,34 +145,6 @@
       align-items: center;
       justify-content: center;
     }
-
-    /* 4번 요청 반영: 검색어 일치 자재명 추천 목록 (드롭다운) */
-    .autocomplete-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      max-height: 220px;
-      overflow-y: auto;
-      z-index: 150;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      margin-top: 4px;
-      display: none;
-    }
-    .autocomplete-list.active { display: block; }
-    .autocomplete-item {
-      padding: 12px;
-      border-bottom: 1px solid #f1f5f9;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .autocomplete-item:last-child { border-bottom: none; }
-    .autocomplete-item:active { background: #f8fafc; }
-    .autocomplete-item .item-name { font-weight: 700; color: var(--text); }
-    .autocomplete-item .item-sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
 
     .icon-btn {
       background: var(--primary);
@@ -405,8 +375,6 @@
       max-width: 320px;
       aspect-ratio: 1 / 1;
       pointer-events: none;
-    }
-    .qr-frame {
       border-radius: 16px;
       box-shadow: 0 0 0 2000px rgba(0,0,0,0.45);
     }
@@ -441,11 +409,8 @@
     <button class="hist-btn" onclick="showHistory()">이전기록</button>
     <div class="hero-sub">Upright Green Energy Partner</div>
     <div class="hero-title">📦 자재 관리마스터</div>
-    
-    <!-- 3번 요청 반영: "선박생산부" 문구로 변경 -->
     <div class="hero-desc">선박생산부</div>
 
-    <!-- 2번 요청 반영: 파란색 배경 오른쪽 맨 아래 QR 스캔 버튼 배치 -->
     <button class="hero-qr-btn" onclick="toggleQr()" aria-label="QR 스캔">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/>
@@ -460,21 +425,17 @@
 
   <!-- ================= 검색 화면 ================= -->
   <div id="viewSearch" class="view active">
-    <!-- 2번 요청 반영: 검색창 및 옆으로 배치된 검색 버튼 -->
     <div class="search-box-wrapper">
       <div class="search-box">
         <input id="searchInput" type="text" placeholder="자재코드 또는 자재명 입력" oninput="handleSearchInput(this.value)" onkeyup="if(event.key==='Enter')doSearch()">
         <button class="btn-search" onclick="doSearch()">검색</button>
       </div>
-
-      <!-- 4번 요청 반영: 자재명 추천 목록 창 -->
-      <div id="autocompleteList" class="autocomplete-list"></div>
     </div>
 
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
 
-    <!-- 저재고 알림 패널 (재고 30% 미만 자재) -->
-    <div id="lowStockPanel" class="lowstock-panel" style="margin-top:16px;">
+    <!-- 저재고 알림 패널 -->
+    <div id="lowStockPanel" class="lowstock-panel">
       <div class="lowstock-header">
         ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
       </div>
@@ -558,9 +519,8 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3ZulI8v1ozzvh
 let selectedMaterial = null;
 let masterLists = null;
 let currentView = 'viewSearch';
-let lastSearchResults = []; // 실시간 추천용 캐시 데이터
+let searchDebounceTimer = null;
 
-// ---------- 서비스워커 등록 ----------
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('./service-worker.js').catch(function (err) {
@@ -569,7 +529,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ---------- Apps Script API 호출 레이어 ----------
 function apiPost(action, payload) {
   return new Promise(function (resolve, reject) {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('YOUR_APPS_SCRIPT') !== -1) {
@@ -604,11 +563,9 @@ function apiPost(action, payload) {
   });
 }
 
-// 1번 요청 반영: 뒤로가기 2번 눌러서 앱 종료 처리 로직
 let lastBackPressedTime = 0;
 
 window.onload = function () {
-  // 뒤로가기 제어를 위해 초기 History 상태 저장
   history.replaceState({ view: 'viewSearch', depth: 1 }, null, location.href);
   history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
 
@@ -622,25 +579,15 @@ window.onload = function () {
   }).catch(showError);
 
   loadLowStockPanel();
-
-  // 검색창 바깥 클릭 시 추천목록 닫기
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.search-box-wrapper')) {
-      hideAutocomplete();
-    }
-  });
 };
 
 window.onpopstate = function (event) {
   if (currentView !== 'viewSearch') {
-    // 메인 화면이 아닐 때는 검색 화면으로 돌아감
     switchView('viewSearch', false);
     history.pushState({ view: 'viewSearch', depth: 2 }, null, location.href);
   } else {
-    // 1번 요청 반영: 메인 검색 화면에서 뒤로가기 눌렀을 때 2번 연달아 눌러 종료 처리
     const currentTime = new Date().getTime();
     if (currentTime - lastBackPressedTime < 2000) {
-      // 2초 이내 다시 누름 -> 앱/페이지 이탈 진행
       history.back();
     } else {
       lastBackPressedTime = currentTime;
@@ -650,7 +597,6 @@ window.onpopstate = function (event) {
   }
 };
 
-// ---------- 저재고 알림 패널 ----------
 let lowStockItems = [];
 let lowStockExpanded = false;
 const LOWSTOCK_COLLAPSED_COUNT = 3;
@@ -730,7 +676,6 @@ function switchView(id, pushHistoryFlag = true) {
   currentView = id;
   document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
-  hideAutocomplete();
 }
 
 function backToSearch() {
@@ -746,65 +691,21 @@ function showHistory() {
   loadHistory();
 }
 
-// ---------- 4번 요청 반영: 실시간 추천 자재 목록 (드롭다운) ----------
-let searchDebounceTimer = null;
-
+// 텍스트 입력 시 실시간으로 카드형 결과가 변경되도록 자동 검색 연동
 function handleSearchInput(kw) {
+  clearTimeout(searchDebounceTimer);
   kw = kw.trim();
   if (!kw) {
-    hideAutocomplete();
+    document.getElementById('searchResults').innerHTML = '';
     return;
   }
-
-  clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(function () {
-    apiPost('search', { keyword: kw })
-      .then(function (items) {
-        lastSearchResults = items || [];
-        renderAutocomplete(items);
-      })
-      .catch(function () {
-        hideAutocomplete();
-      });
+    doSearch();
   }, 250);
-}
-
-function renderAutocomplete(items) {
-  const autoEl = document.getElementById('autocompleteList');
-  if (!items || items.length === 0) {
-    autoEl.innerHTML = '';
-    autoEl.classList.remove('active');
-    return;
-  }
-
-  autoEl.innerHTML = '';
-  items.slice(0, 6).forEach(function (item) { // 최대 6개 노출
-    const div = document.createElement('div');
-    div.className = 'autocomplete-item';
-    div.innerHTML = 
-      '<div class="item-name">' + escapeHtml(item.name) + '</div>' +
-      '<div class="item-sub">코드: ' + escapeHtml(item.code) + ' | 재고: ' + item.stock + ' ' + escapeHtml(item.unit || '') + '</div>';
-    
-    div.onclick = function () {
-      document.getElementById('searchInput').value = item.name;
-      hideAutocomplete();
-      selectMaterial(item);
-    };
-    autoEl.appendChild(div);
-  });
-  autoEl.classList.add('active');
-}
-
-function hideAutocomplete() {
-  const autoEl = document.getElementById('autocompleteList');
-  if (autoEl) {
-    autoEl.classList.remove('active');
-  }
 }
 
 // ---------- 검색 ----------
 function doSearch() {
-  hideAutocomplete();
   const kw = document.getElementById('searchInput').value.trim();
   const resultsEl = document.getElementById('searchResults');
   if (!kw) { resultsEl.innerHTML = ''; return; }
@@ -862,7 +763,7 @@ function selectMaterial(item) {
   switchView('viewForm');
 }
 
-// ---------- QR 스캔 (실시간 카메라 인식) ----------
+// ---------- QR 스캔 ----------
 let qrStream = null;
 let qrScanLoopId = null;
 let qrScanning = false;
@@ -1244,7 +1145,6 @@ function loadHistory() {
     });
 }
 
-// ---------- 유틸리티 ----------
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.className = 'toast';
