@@ -115,7 +115,7 @@
 
     .search-box-wrapper {
       position: relative;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
     .search-box { 
       display: flex; 
@@ -161,11 +161,12 @@
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 13px; color: var(--text-light); margin-bottom: 6px; font-weight: 600; }
 
+    /* 카드 스타일 (사진 2 형태) */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 12px;
+      padding: 14px;
       margin-bottom: 10px;
       cursor: pointer;
       transition: box-shadow .15s;
@@ -205,13 +206,13 @@
     }
     .stock-badge.low { background: #fee2e2; color: #991b1b; }
 
-    /* ---- 저재고 알림 패널 ---- */
+    /* ---- 재고부족 알림 패널 (검색결과 '아래' 배치) ---- */
     .lowstock-panel {
       background: #fff7ed;
       border: 1px solid #fed7aa;
       border-radius: 12px;
       padding: 12px 14px;
-      margin-top: 14px;
+      margin-top: 16px;
       margin-bottom: 14px;
       display: none;
     }
@@ -327,7 +328,6 @@
     .toast.error { background: var(--danger); }
     .spinner { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; }
 
-    /* ---- 실시간 QR 스캔 오버레이 ---- */
     .qr-overlay {
       display: none;
       position: fixed;
@@ -437,10 +437,10 @@
 
     <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display:none" onchange="handleQrFile(event)">
 
-    <!-- 검색 결과 목록 (재고부족창 위로 배치) -->
+    <!-- 1. 검색 결과 목록이 먼저 표시됨 -->
     <div id="searchResults"></div>
 
-    <!-- 재고 부족 알림 패널 (검색목록 아래로 이동) -->
+    <!-- 2. 재고 부족 알림 패널이 검색결과 아래로 위치함 -->
     <div id="lowStockPanel" class="lowstock-panel">
       <div class="lowstock-header">
         ⚠️ 재고 부족 자재 <span class="count-badge" id="lowStockCount">0</span>
@@ -519,7 +519,7 @@
 
 <script>
 // ⚠️ 본인의 Google Apps Script 배포 URL 주소를 넣어주세요.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3N0LN0ggQ3010clHpPkE-VvUMkjWlmSJUcfecuKmDijEqNFw-6qzkRKy3EGczHSvU/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz91LlNEZBaXzusgwIeEK0BN068KrlFHWEAA07RyXK4cVrul4Dm1xoHajiKxB7U1YVz/exec';
 
 let selectedMaterial = null;
 let masterLists = null;
@@ -534,7 +534,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Google Apps Script 통신용 (CORS 및 JSON Body 파싱 문제 최적화)
 function apiPost(action, payload) {
   return new Promise(function (resolve, reject) {
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('YOUR_APPS_SCRIPT') !== -1) {
@@ -705,7 +704,7 @@ function showHistory() {
   loadHistory();
 }
 
-// 실시간 입력 처리 (속도를 위해 이미지 없이 텍스트 카드만 빠르게 출력)
+// 실시간 입력 처리 (속도를 위해 이미지 없이 카드 형태로 출력)
 function handleRealtimeSearch(kw) {
   clearTimeout(searchDebounceTimer);
   kw = kw.trim();
@@ -718,7 +717,7 @@ function handleRealtimeSearch(kw) {
   }, 150);
 }
 
-// 검색 실행 함수 (showPhoto: true=이미지 포함, false=텍스트만)
+// 검색 실행 함수 (showPhoto가 true면 이미지 포함, false면 텍스트 전용 카드)
 function doSearch(showPhoto = true) {
   clearTimeout(searchDebounceTimer);
   
@@ -744,7 +743,7 @@ function doSearch(showPhoto = true) {
         const div = document.createElement('div');
         div.className = 'card' + (item.lowStock ? ' low-stock-card' : '');
         
-        // showPhoto가 true일 때만 이미지 영역 생성
+        // showPhoto가 true일 때만 이미지 썸네일 노출
         let thumbHtml = '';
         if (showPhoto) {
           thumbHtml = '<div class="card-thumb">' + 
